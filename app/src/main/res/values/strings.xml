@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">MobileScholarSchool</string>
+
+    <!-- Shared -->
+    <string name="app_title">ScholarSchool</string>
+
+    <!-- Sign In screen -->
+    <string name="welcome_back">Welcome Back Sign In Please</string>
+    <string name="hint_email">Email Address</string>
+    <string name="hint_password">Password</string>
+    <string name="terms_notice">By tapping \'Sign In\' you agree to our Terms and Conditions</string>
+    <string name="btn_sign_in">Sign In</string>
+    <string name="no_account">Don\'t Have an Account? Sign Up</string>
+
+    <!-- Sign Up screen -->
+    <string name="title_sign_up">Sign Up</string>
+    <string name="hint_full_name">Full Name</string>
+    <string name="hint_id_number">ID Number</string>
+    <string name="hint_registration_no">Registration Number</string>
+    <string name="label_gender">Gender</string>
+    <string name="gender_male">Male</string>
+    <string name="gender_female">Female</string>
+    <string name="label_department">Department</string>
+    <string name="hint_confirm_password">Confirm Password</string>
+    <string name="agree_terms">I agree to the Terms and Conditions</string>
+    <string name="btn_sign_up">Sign Up</string>
+    <string name="have_account">Already Have an Account? Sign In</string>
+</resources>

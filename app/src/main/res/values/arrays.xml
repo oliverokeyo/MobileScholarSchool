@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="department_list">
+        <item>Select Department</item>
+        <item>Education</item>
+        <item>Engineering</item>
+        <item>Law</item>
+        <item>Computing and Information Technology</item>
+        <item>Business and Economics</item>
+    </string-array>
+</resources>

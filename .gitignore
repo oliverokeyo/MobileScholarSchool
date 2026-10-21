@@ -1,0 +1,37 @@
+
+# IntelliJ IDEA / Android Studio
+*.iml
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Gradle
+.gradle/
+
+# Local Android SDK path
+local.properties
+
+# Build output
+/build/
+/app/build/
+**/build/
+
+# Android native build output
+.externalNativeBuild/
+.cxx/
+
+# Generated captures
+/captures/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Local Firebase configuration
+app/google-services.json
+
+# Android Studio settings inside app
+app/.idea/
