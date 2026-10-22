@@ -18,8 +18,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.mobilescholarschool.MainActivity;
 import com.example.mobilescholarschool.R;
+import com.example.mobilescholarschool.SignOut.SignOutActivity;
 import com.example.mobilescholarschool.SignUp.SignUpActivity;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
@@ -62,13 +62,13 @@ public class SignInActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         if (mAuth.getCurrentUser() != null) {
-            goToMain();
+            goToProfile();
         }
     }
 
     private void attemptSignIn() {
         String emailAddress = editEmail.getText().toString().trim();
-        String password = editPassword.getText().toString();
+        String password = editPassword.getText().toString();   // never trimmed
 
         if (!isFormValid(emailAddress, password)) {
             return;
@@ -110,7 +110,7 @@ public class SignInActivity extends AppCompatActivity {
         mAuth.signInWithEmailAndPassword(emailAddress, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        goToMain();
+                        goToProfile();
                     } else {
                         btnSignIn.setEnabled(true);
                         showAuthError(task.getException());
@@ -133,8 +133,8 @@ public class SignInActivity extends AppCompatActivity {
         Toast.makeText(SignInActivity.this, message, Toast.LENGTH_LONG).show();
     }
 
-    private void goToMain() {
-        Intent intent = new Intent(SignInActivity.this, MainActivity.class);
+    private void goToProfile() {
+        Intent intent = new Intent(SignInActivity.this, SignOutActivity.class);
         startActivity(intent);
         finish();
     }

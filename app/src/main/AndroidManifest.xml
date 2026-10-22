@@ -4,8 +4,8 @@
 
     <!-- Allows the app to send and receive data over the network -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Allows the app to check whether the device is online and what type of connection it has -->
 
+    <!-- Allows the app to check whether the device is online and what type of connection it has -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
@@ -17,9 +17,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Material3.Light">
+
+        <!-- LAUNCHER: the first screen the app opens. exported must be true for this one -->
         <activity
-            android:name=".MainActivity"
+            android:name=".SignIn.SignInActivity"
             android:exported="true"
+            android:theme="@style/Theme.Material3.Light.NoActionBar"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,18 +30,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Opened from Sign In after a successful login -->
         <activity
-            android:name=".SignIn.SignInActivity"
+            android:name=".SignOut.SignOutActivity"
             android:exported="false"
             android:theme="@style/Theme.Material3.Light.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".SignUp.SignUpActivity"
             android:exported="false"
             android:theme="@style/Theme.Material3.Light.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
+
+
         <activity
-            android:name=".SignOut.SignOutActivity"
+            android:name=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
     </application>
