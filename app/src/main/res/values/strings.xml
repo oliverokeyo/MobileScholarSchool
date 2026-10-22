@@ -25,4 +25,21 @@
     <string name="agree_terms">I agree to the Terms and Conditions</string>
     <string name="btn_sign_up">Sign Up</string>
     <string name="have_account">Already Have an Account? Sign In</string>
+
+    <!-- Profile / Sign Out screen -->
+    <string name="title_student_profile">Student Profile</string>
+    <string name="loading_profile">Loading profile...</string>
+    <string name="profile_load_failed">Could not load profile</string>
+    <string name="profile_not_found">Profile not found</string>
+    <string name="welcome_user">Welcome, %1$s</string>
+    <string name="profile_email">Email: %1$s</string>
+    <string name="profile_reg_no">Registration No: %1$s</string>
+    <string name="profile_id_number">ID Number: %1$s</string>
+    <string name="profile_department">Department: %1$s</string>
+    <string name="profile_gender">Gender: %1$s</string>
+    <string name="btn_sign_out">Sign Out</string>
+    <string name="btn_edit_details">Edit Details</string>
+    <string name="title_edit_details">Edit Details</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
 </resources>
