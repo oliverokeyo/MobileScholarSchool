@@ -18,18 +18,24 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Material3.Light">
 
-        <!-- LAUNCHER: the first screen the app opens. exported must be true for this one -->
+        <!-- LAUNCHER -->
         <activity
-            android:name=".SignIn.SignInActivity"
+            android:name=".Splash.SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.Material3.Light.NoActionBar"
-            android:windowSoftInputMode="adjustResize">
+            android:theme="@style/Theme.Material3.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Opened from the splash screen -->
+        <activity
+            android:name=".SignIn.SignInActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Material3.Light.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- Opened from Sign In after a successful login -->
         <activity
@@ -44,7 +50,7 @@
             android:theme="@style/Theme.Material3.Light.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
 
-
+        <!-- Not used by the login flow right now; kept declared because the class still exists -->
         <activity
             android:name=".MainActivity"
             android:exported="false"
