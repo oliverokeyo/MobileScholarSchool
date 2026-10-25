@@ -42,4 +42,24 @@
     <string name="title_edit_details">Edit Details</string>
     <string name="btn_save">Save</string>
     <string name="btn_cancel">Cancel</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_library">Library</string>
+    <string name="nav_hostel">Hostel</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_payments">Payments</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_coming_soon">%1$s is coming soon</string>
+
+    <!-- Home screen -->
+    <string name="greeting_morning">Good Morning!</string>
+    <string name="greeting_afternoon">Good Afternoon!</string>
+    <string name="greeting_evening">Good Evening!</string>
+    <string name="welcome_format">%1$s %2$s</string>
+    <string name="default_user_name">Student</string>
+    <string name="student_id_format">Student ID: %1$s</string>
+    <string name="student_id_loading">Student ID: Loading…</string>
+    <string name="student_id_unavailable">Student ID: Unavailable</string>
+    <string name="student_id_not_available">Student ID: Not available</string>
+    <string name="notifications_none">No new notifications</string>
 </resources>
