@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.widget.Toast;
 
 import com.example.mobilescholarschool.HomeTab.HomeActivity;
+import com.example.mobilescholarschool.LibraryTab.LibraryTabActivity;
 import com.example.mobilescholarschool.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -50,9 +51,10 @@ public final class BottomNavHelper {
         });
     }
 
-    /** The ONE place that says which screen each tab opens. */
+    /** Which screen each tab opens. */
     private static Class<?> destinationFor(int itemId) {
         if (itemId == R.id.nav_home) return HomeActivity.class;
+        if (itemId == R.id.nav_library) return LibraryTabActivity.class;
         return null;   // screen not built yet
     }
 }
