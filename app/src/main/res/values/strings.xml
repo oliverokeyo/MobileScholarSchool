@@ -62,4 +62,23 @@
     <string name="student_id_unavailable">Student ID: Unavailable</string>
     <string name="student_id_not_available">Student ID: Not available</string>
     <string name="notifications_none">No new notifications</string>
+
+    <!-- Library screen -->
+    <string name="lib_title">Library</string>
+    <string name="lib_subtitle">Discover and request library books</string>
+    <string name="lib_notifications">Notifications</string>
+    <string name="lib_search_hint">Search by title, author or ISBN</string>
+    <string name="lib_overview">My Library Overview</string>
+    <string name="lib_borrowed">Borrowed</string>
+    <string name="lib_pending">Pending</string>
+    <string name="lib_overdue">Overdue</string>
+    <string name="lib_services">Library Services</string>
+    <string name="lib_find_book">Find a Book</string>
+    <string name="lib_find_book_desc">Search the catalogue and check availability.</string>
+    <string name="lib_request_book">Request a Book</string>
+    <string name="lib_request_book_desc">Submit a borrowing request using book details.</string>
+    <string name="lib_my_requests">My Requests</string>
+    <string name="lib_my_requests_desc">Track pending, approved and rejected requests.</string>
+    <string name="lib_borrowed_books">Borrowed Books</string>
+    <string name="lib_borrowed_books_desc">View return dates and overdue books.</string>
 </resources>

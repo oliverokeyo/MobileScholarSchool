@@ -48,7 +48,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Student ID: "
+        android:text="Student ID:(SB06/SR/1234/90) "
         app:layout_constraintStart_toStartOf="@id/txtViewWelcome"
         app:layout_constraintTop_toBottomOf="@id/txtViewWelcome" />
 
@@ -84,6 +84,14 @@
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.5" />
 
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrierRow1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="imgPayments,txtViewBalance,imgLibrary,txtViewLibraryUpdates" />
+
     <TextView
         android:id="@+id/txtViewStudentOverview"
         android:layout_width="wrap_content"
@@ -118,8 +126,17 @@
         android:text="Outstanding Fee Balance"
         app:layout_constraintStart_toEndOf="@id/imgPayments"
         app:layout_constraintEnd_toStartOf="@id/guideCenter"
-        app:layout_constraintTop_toTopOf="@id/imgPayments"
-        app:layout_constraintBottom_toBottomOf="@id/imgPayments" />
+        app:layout_constraintTop_toTopOf="@id/imgPayments" />
+
+    <TextView
+        android:id="@+id/txtViewBalance"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Ksh. [Balance]"
+        app:layout_constraintStart_toStartOf="@id/txtViewFeeBalance"
+        app:layout_constraintEnd_toEndOf="@id/txtViewFeeBalance"
+        app:layout_constraintTop_toBottomOf="@id/txtViewFeeBalance" />
 
     <!-- Row 1, right: Library -->
     <ImageView
@@ -142,8 +159,17 @@
         android:text="Library Updates"
         app:layout_constraintStart_toEndOf="@id/imgLibrary"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/imgLibrary"
-        app:layout_constraintBottom_toBottomOf="@id/imgLibrary" />
+        app:layout_constraintTop_toTopOf="@id/imgLibrary" />
+
+    <TextView
+        android:id="@+id/txtViewLibraryUpdates"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="(Updates)"
+        app:layout_constraintStart_toStartOf="@id/textViewLibrary"
+        app:layout_constraintEnd_toEndOf="@id/textViewLibrary"
+        app:layout_constraintTop_toBottomOf="@id/textViewLibrary" />
 
     <!-- Row 2, left: Hostel -->
     <ImageView
@@ -156,7 +182,7 @@
         android:importantForAccessibility="no"
         app:tint="?attr/colorOnSurface"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/imgPayments" />
+        app:layout_constraintTop_toBottomOf="@id/barrierRow1" />
 
     <TextView
         android:id="@+id/txtViewHostel"
@@ -167,20 +193,50 @@
         android:text="Hostel Updates"
         app:layout_constraintStart_toEndOf="@id/imgHostel"
         app:layout_constraintEnd_toStartOf="@id/guideCenter"
-        app:layout_constraintTop_toTopOf="@id/imgHostel"
-        app:layout_constraintBottom_toBottomOf="@id/imgHostel" />
+        app:layout_constraintTop_toTopOf="@id/imgHostel" />
 
-    <!-- Row 2, right: Units  -->
+    <TextView
+        android:id="@+id/txtViewBookedStatus"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="(Booked/Unbooked)"
+        app:layout_constraintStart_toStartOf="@id/txtViewHostel"
+        app:layout_constraintEnd_toEndOf="@id/txtViewHostel"
+        app:layout_constraintTop_toBottomOf="@id/txtViewHostel" />
+
+    <!-- Row 2, right: Units -->
+    <ImageView
+        android:id="@+id/imgUnits"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="12dp"
+        android:src="@drawable/ic_units"
+        android:importantForAccessibility="no"
+        app:tint="?attr/colorOnSurface"
+        app:layout_constraintStart_toStartOf="@id/guideCenter"
+        app:layout_constraintTop_toTopOf="@id/imgHostel" />
+
     <TextView
         android:id="@+id/textViewUnits"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
         android:layout_marginEnd="24dp"
         android:text="Unit Registration"
-        app:layout_constraintStart_toStartOf="@id/imgLibrary"
+        app:layout_constraintStart_toEndOf="@id/imgUnits"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/imgHostel"
-        app:layout_constraintBottom_toBottomOf="@id/imgHostel" />
+        app:layout_constraintTop_toTopOf="@id/imgUnits" />
+
+    <TextView
+        android:id="@+id/textViewUnitStatus"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="(Registered/Pending/Unregistered)"
+        app:layout_constraintStart_toStartOf="@id/textViewUnits"
+        app:layout_constraintEnd_toEndOf="@id/textViewUnits"
+        app:layout_constraintTop_toBottomOf="@id/textViewUnits" />
 
     <include
         layout="@layout/layout_bottom_nav"

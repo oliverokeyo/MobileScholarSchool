@@ -1,0 +1,499 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".LibraryTab.LibraryTabActivity">
+
+    <!-- Scrollable Feature -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollLibrary"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav">
+
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/contentLibrary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="24dp">
+
+            <!-- ===================== HEADER ===================== -->
+
+            <TextView
+                android:id="@+id/txtViewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginTop="48dp"
+                android:text="@string/app_title"
+                android:textSize="36sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageView
+                android:id="@+id/imgLibrary"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:src="@drawable/ic_library"
+                android:contentDescription="@string/lib_title"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewTitle" />
+
+            <TextView
+                android:id="@+id/txtViewLibrary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/lib_title"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toEndOf="@+id/imgLibrary"
+                app:layout_constraintEnd_toStartOf="@id/imgNotifications"
+                app:layout_constraintTop_toTopOf="@id/imgLibrary" />
+
+            <TextView
+                android:id="@+id/txtViewLibraryDescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/lib_subtitle"
+                app:layout_constraintStart_toStartOf="@id/txtViewLibrary"
+                app:layout_constraintEnd_toEndOf="@id/txtViewLibrary"
+                app:layout_constraintTop_toBottomOf="@id/txtViewLibrary" />
+
+            <ImageButton
+                android:id="@+id/imgNotifications"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="24dp"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_notifications"
+                android:contentDescription="@string/lib_notifications"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgLibrary"
+                app:layout_constraintBottom_toBottomOf="@id/imgLibrary" />
+
+            <!-- ===================== SEARCH ===================== -->
+
+            <ImageView
+                android:id="@+id/imgSearch"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="24dp"
+                android:src="@drawable/ic_search"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/txtInputSearch"
+                app:layout_constraintBottom_toBottomOf="@id/txtInputSearch" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/txtInputSearch"
+                style="?attr/textInputOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="24dp"
+                android:layout_marginTop="24dp"
+                android:hint="@string/lib_search_hint"
+                app:layout_constraintStart_toEndOf="@id/imgSearch"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/imgLibrary">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editTxtTxt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:importantForAutofill="no"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- ===================== OVERVIEW ===================== -->
+
+            <TextView
+                android:id="@+id/txtViewLibraryOverview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="24dp"
+                android:text="@string/lib_overview"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtInputSearch" />
+
+            <!-- Horizontal chain: Borrowed, Pending, Overdue, spread evenly -->
+            <TextView
+                android:id="@+id/txtViewBorrowed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/lib_borrowed"
+                app:layout_constraintHorizontal_chainStyle="spread"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/txtViewPending"
+                app:layout_constraintTop_toBottomOf="@id/txtViewLibraryOverview" />
+
+            <EditText
+                android:id="@+id/editTxtNumberBorrowed"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:text="[0]"
+                app:layout_constraintStart_toStartOf="@id/txtViewBorrowed"
+                app:layout_constraintEnd_toEndOf="@id/txtViewBorrowed"
+                app:layout_constraintTop_toBottomOf="@id/txtViewBorrowed" />
+
+            <TextView
+                android:id="@+id/txtViewPending"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/lib_pending"
+                app:layout_constraintStart_toEndOf="@id/txtViewBorrowed"
+                app:layout_constraintEnd_toStartOf="@id/txtViewOverdue"
+                app:layout_constraintBaseline_toBaselineOf="@id/txtViewBorrowed" />
+
+            <EditText
+                android:id="@+id/editTxtNumberPending"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:text="[0]"
+                app:layout_constraintStart_toStartOf="@id/txtViewPending"
+                app:layout_constraintEnd_toEndOf="@id/txtViewPending"
+                app:layout_constraintTop_toBottomOf="@id/txtViewPending" />
+
+            <TextView
+                android:id="@+id/txtViewOverdue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/lib_overdue"
+                app:layout_constraintStart_toEndOf="@id/txtViewPending"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBaseline_toBaselineOf="@id/txtViewBorrowed" />
+
+            <EditText
+                android:id="@+id/editTxtNumberOverdue"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:text="[0]"
+                app:layout_constraintStart_toStartOf="@id/txtViewOverdue"
+                app:layout_constraintEnd_toEndOf="@id/txtViewOverdue"
+                app:layout_constraintTop_toBottomOf="@id/txtViewOverdue" />
+
+            <!-- Barrier: waits for the number fields so Library Services sits below them -->
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/barrierCounts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="bottom"
+                app:constraint_referenced_ids="editTxtNumberBorrowed,editTxtNumberPending,editTxtNumberOverdue" />
+
+            <!-- ===================== SERVICES ===================== -->
+
+            <TextView
+                android:id="@+id/txtViewLibraryServices"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="32dp"
+                android:text="@string/lib_services"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/barrierCounts" />
+
+            <!-- Row 1: FindBook -->
+            <ImageView
+                android:id="@+id/imgFindBook"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:src="@drawable/ic_search"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewLibraryServices" />
+
+            <TextView
+                android:id="@+id/txtViewFindBook"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/lib_find_book"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toEndOf="@id/imgFindBook"
+                app:layout_constraintEnd_toStartOf="@id/imgFindBookArrow"
+                app:layout_constraintTop_toTopOf="@id/imgFindBook" />
+
+            <TextView
+                android:id="@+id/txtViewFindBookDescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/lib_find_book_desc"
+                app:layout_constraintStart_toStartOf="@id/txtViewFindBook"
+                app:layout_constraintEnd_toEndOf="@id/txtViewFindBook"
+                app:layout_constraintTop_toBottomOf="@id/txtViewFindBook" />
+
+            <ImageView
+                android:id="@+id/imgFindBookArrow"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="24dp"
+                android:src="@drawable/ic_forward"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgFindBook"
+                app:layout_constraintBottom_toBottomOf="@id/imgFindBook" />
+
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/barrierFindBook"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="bottom"
+                app:constraint_referenced_ids="imgFindBook,txtViewFindBookDescription,imgFindBookArrow" />
+
+            <View
+                android:id="@+id/divider1"
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="?android:attr/listDivider"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/barrierFindBook" />
+
+            <!-- Row 2: RequestBook -->
+            <ImageView
+                android:id="@+id/imgRequestBook"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:src="@drawable/ic_requestbook"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/divider1" />
+
+            <TextView
+                android:id="@+id/txtViewRequestBook"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/lib_request_book"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toEndOf="@id/imgRequestBook"
+                app:layout_constraintEnd_toStartOf="@id/imgRequestBookArrow"
+                app:layout_constraintTop_toTopOf="@id/imgRequestBook" />
+
+            <TextView
+                android:id="@+id/txtViewRequestBookDescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/lib_request_book_desc"
+                app:layout_constraintStart_toStartOf="@id/txtViewRequestBook"
+                app:layout_constraintEnd_toEndOf="@id/txtViewRequestBook"
+                app:layout_constraintTop_toBottomOf="@id/txtViewRequestBook" />
+
+            <ImageView
+                android:id="@+id/imgRequestBookArrow"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="24dp"
+                android:src="@drawable/ic_forward"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgRequestBook"
+                app:layout_constraintBottom_toBottomOf="@id/imgRequestBook" />
+
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/barrierRequestBook"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="bottom"
+                app:constraint_referenced_ids="imgRequestBook,txtViewRequestBookDescription,imgRequestBookArrow" />
+
+            <View
+                android:id="@+id/divider2"
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="?android:attr/listDivider"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/barrierRequestBook" />
+
+            <!-- Row 3: Requests -->
+            <ImageView
+                android:id="@+id/imgRequests"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:src="@drawable/ic_requestedbooks"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/divider2" />
+
+            <TextView
+                android:id="@+id/txtViewRequests"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/lib_my_requests"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toEndOf="@id/imgRequests"
+                app:layout_constraintEnd_toStartOf="@id/imgRequestsArrow"
+                app:layout_constraintTop_toTopOf="@id/imgRequests" />
+
+            <TextView
+                android:id="@+id/txtViewRequestsDescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/lib_my_requests_desc"
+                app:layout_constraintStart_toStartOf="@id/txtViewRequests"
+                app:layout_constraintEnd_toEndOf="@id/txtViewRequests"
+                app:layout_constraintTop_toBottomOf="@id/txtViewRequests" />
+
+            <ImageView
+                android:id="@+id/imgRequestsArrow"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="24dp"
+                android:src="@drawable/ic_forward"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgRequests"
+                app:layout_constraintBottom_toBottomOf="@id/imgRequests" />
+
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/barrierRequests"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="bottom"
+                app:constraint_referenced_ids="imgRequests,txtViewRequestsDescription,imgRequestsArrow" />
+
+            <View
+                android:id="@+id/divider3"
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="?android:attr/listDivider"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/barrierRequests" />
+
+            <!-- Row 4: BorrowedBooks -->
+            <ImageView
+                android:id="@+id/imgBorrowedBooks"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:src="@drawable/ic_borrowedbooks"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/divider3" />
+
+            <TextView
+                android:id="@+id/txtViewBorrowedBooks"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/lib_borrowed_books"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toEndOf="@id/imgBorrowedBooks"
+                app:layout_constraintEnd_toStartOf="@id/imgBorrowedBooksArrow"
+                app:layout_constraintTop_toTopOf="@id/imgBorrowedBooks" />
+
+            <TextView
+                android:id="@+id/txtViewBorrowedBooksDescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/lib_borrowed_books_desc"
+                app:layout_constraintStart_toStartOf="@id/txtViewBorrowedBooks"
+                app:layout_constraintEnd_toEndOf="@id/txtViewBorrowedBooks"
+                app:layout_constraintTop_toBottomOf="@id/txtViewBorrowedBooks" />
+
+            <ImageView
+                android:id="@+id/imgBorrowedBooksArrow"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="24dp"
+                android:src="@drawable/ic_forward"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurface"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgBorrowedBooks"
+                app:layout_constraintBottom_toBottomOf="@id/imgBorrowedBooks" />
+
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/barrierBorrowedBooks"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="bottom"
+                app:constraint_referenced_ids="imgBorrowedBooks,txtViewBorrowedBooksDescription,imgBorrowedBooksArrow" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- ===================== BOTTOM NAV ===================== -->
+    <!-- NOTE: no android:id here on purpose. The id comes from the included
+         file (@+id/bottomNav), which is what BottomNavHelper looks up. -->
+    <include
+        layout="@layout/layout_bottom_nav"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
