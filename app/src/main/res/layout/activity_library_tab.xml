@@ -484,8 +484,6 @@
     </androidx.core.widget.NestedScrollView>
 
     <!-- ===================== BOTTOM NAV ===================== -->
-    <!-- NOTE: no android:id here on purpose. The id comes from the included
-         file (@+id/bottomNav), which is what BottomNavHelper looks up. -->
     <include
         layout="@layout/layout_bottom_nav"
         android:layout_width="0dp"

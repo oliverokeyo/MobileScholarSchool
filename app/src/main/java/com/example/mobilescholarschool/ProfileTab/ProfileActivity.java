@@ -1,4 +1,4 @@
-package com.example.mobilescholarschool.SignOut;
+package com.example.mobilescholarschool.ProfileTab;
 
 import android.content.Context;
 import android.content.Intent;
@@ -21,6 +21,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.mobilescholarschool.Components.BottomNavHelper;
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -33,7 +34,7 @@ import com.google.firebase.firestore.SetOptions;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SignOutActivity extends AppCompatActivity {
+public class ProfileActivity extends AppCompatActivity {
 
     FirebaseAuth auth;
     FirebaseUser user;
@@ -55,7 +56,7 @@ public class SignOutActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_sign_out);
+        setContentView(R.layout.activity_profile);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -70,6 +71,10 @@ public class SignOutActivity extends AppCompatActivity {
             goToSignIn();
             return;
         }
+
+        // Signed in: highlight the Profile tab and make the other tabs navigate.
+        // After the null check so a signed-out user is never shown the bar.
+        BottomNavHelper.setup(this, R.id.nav_profile);
 
         db = FirebaseFirestore.getInstance();
 
@@ -99,7 +104,7 @@ public class SignOutActivity extends AppCompatActivity {
                 .addSnapshotListener(this, (doc, error) -> {
                     if (error != null) {
                         txtViewWelcome.setText(R.string.profile_load_failed);
-                        Toast.makeText(SignOutActivity.this,
+                        Toast.makeText(ProfileActivity.this,
                                 "Could not load your profile. Check your connection.",
                                 Toast.LENGTH_LONG).show();
                         return;
@@ -240,11 +245,11 @@ public class SignOutActivity extends AppCompatActivity {
                 .set(updates, SetOptions.merge())
                 // Fires when the server CONFIRMS the write (can lag on a slow connection)
                 .addOnSuccessListener(this, unused ->
-                        Toast.makeText(SignOutActivity.this,
+                        Toast.makeText(ProfileActivity.this,
                                 "Details updated", Toast.LENGTH_SHORT).show())
                 // If the server rejects the write, Firestore also rolls the screen back
                 .addOnFailureListener(this, e ->
-                        Toast.makeText(SignOutActivity.this,
+                        Toast.makeText(ProfileActivity.this,
                                 "Could not save changes. Your details were not updated.",
                                 Toast.LENGTH_LONG).show());
 
@@ -263,7 +268,7 @@ public class SignOutActivity extends AppCompatActivity {
         return 0;
     }
 
-    
+
     private void signOut() {
         // Stop listening FIRST: once signed out, the rules would reject this read
         if (profileListener != null) {
@@ -274,7 +279,7 @@ public class SignOutActivity extends AppCompatActivity {
     }
 
     private void goToSignIn() {
-        Intent intent = new Intent(SignOutActivity.this, SignInActivity.class);
+        Intent intent = new Intent(ProfileActivity.this, SignInActivity.class);
         // Clear the back stack so Back can't return to a signed-out profile screen
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
