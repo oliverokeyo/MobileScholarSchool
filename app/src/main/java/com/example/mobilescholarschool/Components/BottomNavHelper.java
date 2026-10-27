@@ -5,7 +5,9 @@ import android.content.Intent;
 import android.widget.Toast;
 
 import com.example.mobilescholarschool.HomeTab.HomeActivity;
+import com.example.mobilescholarschool.HostelTab.HostelActivity;
 import com.example.mobilescholarschool.LibraryTab.LibraryTabActivity;
+import com.example.mobilescholarschool.ProfileTab.ProfileActivity;
 import com.example.mobilescholarschool.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -55,6 +57,8 @@ public final class BottomNavHelper {
     private static Class<?> destinationFor(int itemId) {
         if (itemId == R.id.nav_home) return HomeActivity.class;
         if (itemId == R.id.nav_library) return LibraryTabActivity.class;
+        if (itemId == R.id.nav_hostel) return HostelActivity.class;
+        if (itemId == R.id.nav_profile) return ProfileActivity.class;
         return null;   // screen not built yet
     }
 }
