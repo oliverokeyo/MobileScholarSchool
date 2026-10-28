@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".PaymentsTab.PaymentActivity">
+
+    <!-- Scrollable area: sits between the top of the screen and the bottom nav -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollLibrary"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav">
+
+        <!-- NestedScrollView allows ONLY ONE child, so everything lives in this container -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/contentHostel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="24dp">
+
+            <!-- ===================== HEADER ===================== -->
+
+            <TextView
+                android:id="@+id/txtViewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="48dp"
+                android:gravity="center"
+                android:text="@string/app_title"
+                android:textSize="36sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageView
+                android:id="@+id/imgPayments"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:contentDescription="@string/cd_payments_icon"
+                android:src="@drawable/ic_payments"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewTitle"
+                app:tint="?attr/colorOnSurface" />
+
+            <TextView
+                android:id="@+id/txtViewWelcome"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/payments_welcome"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toStartOf="@id/imgNotifications"
+                app:layout_constraintStart_toEndOf="@id/imgPayments"
+                app:layout_constraintTop_toTopOf="@id/imgPayments" />
+
+            <TextView
+                android:id="@+id/txtViewStudentID"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/student_id_placeholder"
+                app:layout_constraintEnd_toEndOf="@id/txtViewWelcome"
+                app:layout_constraintStart_toStartOf="@id/txtViewWelcome"
+                app:layout_constraintTop_toBottomOf="@id/txtViewWelcome"
+                tools:text="Student ID: SB06/SR/1234/90" />
+
+            <ImageButton
+                android:id="@+id/imgNotifications"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_notifications"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_notifications"
+                app:layout_constraintBottom_toBottomOf="@id/imgPayments"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgPayments"
+                app:tint="?attr/colorOnSurface" />
+
+            <!-- Invisible line that sits below the LOWEST of the three header views,
+                 so anything anchored to it can never overlap the header -->
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/headerBarrier"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="bottom"
+                app:constraint_referenced_ids="imgPayments,txtViewStudentID,imgNotifications" />
+
+            <TextView
+                android:id="@+id/txtViewStatus"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="24dp"
+                android:text="@string/registration_status_default"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/headerBarrier"
+                tools:text="Registration status:{ Registered/Pending }" />
+
+            <!-- ===================== PAYMENT FORM ===================== -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPaymentForm"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewStatus">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/formContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="20dp">
+
+                    <!-- Form title -->
+                    <TextView
+                        android:id="@+id/txtViewMakePayment"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/make_a_payment"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <!-- Student number -->
+                    <TextView
+                        android:id="@+id/txtViewStudentNo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:labelFor="@id/editTxtTxtStudentNo"
+                        android:text="@string/label_student_number"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewMakePayment" />
+
+                    <EditText
+                        android:id="@+id/editTxtTxtStudentNo"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:autofillHints="username"
+                        android:hint="@string/hint_student_number"
+                        android:imeOptions="actionNext"
+                        android:inputType="textCapCharacters"
+                        android:minHeight="48dp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewStudentNo" />
+
+                    <!-- Amount -->
+                    <TextView
+                        android:id="@+id/txtViewAmount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:labelFor="@id/editTxtNumberAmount"
+                        android:text="@string/label_amount"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/editTxtTxtStudentNo" />
+
+                    <EditText
+                        android:id="@+id/editTxtNumberAmount"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:hint="@string/hint_amount"
+                        android:imeOptions="actionNext"
+                        android:inputType="number"
+                        android:minHeight="48dp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewAmount" />
+
+                    <!-- Phone number -->
+                    <TextView
+                        android:id="@+id/textViewPhoneNo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:labelFor="@id/editTxtNumberPhoneNo"
+                        android:text="@string/label_phone"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/editTxtNumberAmount" />
+
+                    <EditText
+                        android:id="@+id/editTxtNumberPhoneNo"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:autofillHints="phone"
+                        android:hint="@string/hint_phone"
+                        android:imeOptions="actionDone"
+                        android:inputType="phone"
+                        android:minHeight="48dp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/textViewPhoneNo" />
+
+                    <!-- Submit button: full width of the form -->
+                    <Button
+                        android:id="@+id/btnPayment"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="@string/btn_continue_pay"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/editTxtNumberPhoneNo" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ===================== RECENT TRANSACTIONS ===================== -->
+
+            <TextView
+                android:id="@+id/txtViewRecentTransactions"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="32dp"
+                android:layout_marginEnd="24dp"
+                android:text="@string/recent_transactions"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/cardPaymentForm" />
+
+            <ImageView
+                android:id="@+id/imgReceipt"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="24dp"
+                android:contentDescription="@string/cd_receipt_icon"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_receipt"
+                app:layout_constraintBottom_toBottomOf="@id/txtViewTransactionDesc"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/txtViewTransactionTitle"
+                app:tint="?attr/colorOnSurface" />
+
+            <ImageButton
+                android:id="@+id/imgForward"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_view_transaction"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_forward"
+                app:layout_constraintBottom_toBottomOf="@id/txtViewTransactionDesc"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/txtViewTransactionTitle"
+                app:tint="?attr/colorOnSurface" />
+
+            <TextView
+                android:id="@+id/txtViewTransactionTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/transaction_title"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toStartOf="@id/imgForward"
+                app:layout_constraintStart_toEndOf="@id/imgReceipt"
+                app:layout_constraintTop_toBottomOf="@id/txtViewRecentTransactions" />
+
+            <TextView
+                android:id="@+id/txtViewTransactionDesc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/transaction_desc"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="@id/txtViewTransactionTitle"
+                app:layout_constraintStart_toStartOf="@id/txtViewTransactionTitle"
+                app:layout_constraintTop_toBottomOf="@id/txtViewTransactionTitle" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- ===================== BOTTOM NAV ===================== -->
+    <include
+        android:id="@+id/bottomNav"
+        layout="@layout/layout_bottom_nav"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
