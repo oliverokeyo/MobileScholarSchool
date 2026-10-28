@@ -81,4 +81,24 @@
     <string name="lib_my_requests_desc">Track pending, approved and rejected requests.</string>
     <string name="lib_borrowed_books">Borrowed Books</string>
     <string name="lib_borrowed_books_desc">View return dates and overdue books.</string>
+
+    <!-- Payment screen -->
+    <string name="cd_payments_icon">Payments</string>
+    <string name="cd_notifications">Notifications</string>
+    <string name="payments_welcome">Manage payments securely through M-PESA.</string>
+    <string name="student_id_placeholder">Student ID: --</string>
+    <string name="registration_status_default">Registration status: Pending/Registered</string>
+    <string name="make_a_payment">Make a Payment</string>
+    <string name="label_student_number">Student Number</string>
+    <string name="hint_student_number">Enter your student number</string>
+    <string name="label_amount">Amount (KSh)</string>
+    <string name="hint_amount">Enter amount e.g. 1</string>
+    <string name="label_phone">M-PESA Phone Number</string>
+    <string name="hint_phone">07xx xxx xxx</string>
+    <string name="btn_continue_pay">Continue &amp; Pay</string>
+    <string name="recent_transactions">Recent Transactions</string>
+    <string name="transaction_title">School fee payment</string>
+    <string name="transaction_desc">Transaction history and receipts appear here.</string>
+    <string name="cd_receipt_icon">Receipt</string>
+    <string name="cd_view_transaction">View transaction history</string>
 </resources>
