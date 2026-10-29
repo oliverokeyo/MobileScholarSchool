@@ -6,6 +6,9 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
@@ -32,6 +35,7 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
@@ -55,6 +59,13 @@ public class SignUpActivity extends AppCompatActivity {
 
     FirebaseAuth mAuth;
     FirebaseFirestore db;
+
+    // How long we wait for Firestore to confirm the profile
+    private static final long SAVE_TIMEOUT_MS = 15_000;
+    private final Handler timeoutHandler = new Handler(Looper.getMainLooper());
+    private Runnable saveTimeout;
+    // Numbers each save attempt so a late reply from an OLD attempt can be ignored
+    private int saveAttempt = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -201,6 +212,19 @@ public class SignUpActivity extends AppCompatActivity {
 
         btnSignUp.setEnabled(false); // stop double taps while we wait
 
+        // RETRY AFTER A TIMEOUT
+        FirebaseUser existing = mAuth.getCurrentUser();
+        if (existing != null) {
+            if (emailAddress.equalsIgnoreCase(existing.getEmail())) {
+                saveProfile(existing, fullName, idNumber, registrationNo,
+                        emailAddress, gender, department);
+                return;
+            }
+            // A different account is signed in: sign it out so we never attach this
+            // profile to the wrong person
+            mAuth.signOut();
+        }
+
         mAuth.createUserWithEmailAndPassword(emailAddress, password)
                 .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                     @Override
@@ -232,7 +256,10 @@ public class SignUpActivity extends AppCompatActivity {
         profile.put("email", emailAddress);
         profile.put("gender", gender);
         profile.put("department", department);
-        profile.put("createdAt", System.currentTimeMillis());
+        profile.put("createdAt", FieldValue.serverTimestamp());
+
+        final int attempt = ++saveAttempt;
+        startSaveTimeout(attempt);
 
         // Document id = the user's Firebase uid, so each login maps to exactly one profile
         db.collection("users").document(user.getUid())
@@ -240,7 +267,15 @@ public class SignUpActivity extends AppCompatActivity {
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
+                        if (attempt != saveAttempt) {
+                            return;
+                        }
+                        cancelSaveTimeout();
+
                         if (task.isSuccessful()) {
+                            if (isFinishing() || isDestroyed()) {
+                                return;
+                            }
                             Toast.makeText(SignUpActivity.this,
                                     "Account created successfully. Please sign in.",
                                     Toast.LENGTH_LONG).show();
@@ -249,9 +284,14 @@ public class SignUpActivity extends AppCompatActivity {
                             mAuth.signOut();
                             goToSignIn();
                         } else {
+                            Log.e("SignUpActivity", "Profile save failed", task.getException());
+
                             // Roll back: delete the half-finished account so the user can retry
                             // (otherwise retrying would say "email already registered")
                             user.delete();
+                            if (isFinishing() || isDestroyed()) {
+                                return;
+                            }
                             btnSignUp.setEnabled(true);
                             Toast.makeText(SignUpActivity.this,
                                     "Could not save your details. Please try again.",
@@ -259,6 +299,37 @@ public class SignUpActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void startSaveTimeout(int attempt) {
+        cancelSaveTimeout();
+        saveTimeout = () -> {
+            // Ignore if a newer attempt started, or the screen is already gone
+            if (attempt != saveAttempt || isFinishing() || isDestroyed()) {
+                return;
+            }
+            Log.w("SignUpActivity", "Profile save timed out after " + SAVE_TIMEOUT_MS + " ms");
+            btnSignUp.setEnabled(true);
+            Toast.makeText(SignUpActivity.this,
+                    "Saving is taking too long. Check your connection, then tap Sign Up again.",
+                    Toast.LENGTH_LONG).show();
+        };
+        timeoutHandler.postDelayed(saveTimeout, SAVE_TIMEOUT_MS);
+    }
+
+    /** Cancels the countdown, if one is running. */
+    private void cancelSaveTimeout() {
+        if (saveTimeout != null) {
+            timeoutHandler.removeCallbacks(saveTimeout);
+            saveTimeout = null;
+        }
+    }
+
+    /** Stop the countdown when the screen closes so it can't touch a dead screen. */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        cancelSaveTimeout();
     }
 
     private void showAuthError(Exception e) {
