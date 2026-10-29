@@ -6,6 +6,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -27,6 +28,7 @@ import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.SetOptions;
@@ -98,11 +100,16 @@ public class ProfileActivity extends AppCompatActivity {
         btnSignOut.setOnClickListener(v -> signOut());
     }
 
-
+    /**
+     * Live connection to users/{uid}. The lambda runs once with the current data and again
+     * on every change, which is why the screen updates by itself after an edit.
+     */
     private void listenToProfile() {
         profileListener = db.collection("users").document(user.getUid())
                 .addSnapshotListener(this, (doc, error) -> {
                     if (error != null) {
+                        // NEW: log the real reason (e.g. PERMISSION_DENIED) for Logcat
+                        Log.e("ProfileActivity", "Profile listener failed", error);
                         txtViewWelcome.setText(R.string.profile_load_failed);
                         Toast.makeText(ProfileActivity.this,
                                 "Could not load your profile. Check your connection.",
@@ -238,7 +245,9 @@ public class ProfileActivity extends AppCompatActivity {
         updates.put("registrationNo", regNo);
         updates.put("gender", gender);
         updates.put("department", department);
-        updates.put("updatedAt", System.currentTimeMillis());
+
+
+        updates.put("updatedAt", FieldValue.serverTimestamp());
 
         // merge: change ONLY these fields and leave the rest (email, createdAt) untouched
         db.collection("users").document(user.getUid())
@@ -248,12 +257,16 @@ public class ProfileActivity extends AppCompatActivity {
                         Toast.makeText(ProfileActivity.this,
                                 "Details updated", Toast.LENGTH_SHORT).show())
                 // If the server rejects the write, Firestore also rolls the screen back
-                .addOnFailureListener(this, e ->
-                        Toast.makeText(ProfileActivity.this,
-                                "Could not save changes. Your details were not updated.",
-                                Toast.LENGTH_LONG).show());
+                .addOnFailureListener(this, e -> {
+                    // NEW: the user sees a friendly message, YOU see the real reason in Logcat
+                    Log.e("ProfileActivity", "Save failed", e);
+                    Toast.makeText(ProfileActivity.this,
+                            "Could not save changes. Your details were not updated.",
+                            Toast.LENGTH_LONG).show();
+                });
 
-
+        // Closing right away is fine: the snapshot listener shows the new values instantly
+        // from Firestore's local cache, before the server has even replied.
         dialog.dismiss();
     }
 
