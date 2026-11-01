@@ -42,15 +42,15 @@
 
             <ImageView
                 android:id="@+id/imgPayments"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="24dp"
                 android:layout_marginTop="16dp"
                 android:contentDescription="@string/cd_payments_icon"
                 android:src="@drawable/ic_payments"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/txtViewTitle"
-                app:tint="?attr/colorOnSurface" />
+                app:tint="@color/icon_dark" />
 
             <TextView
                 android:id="@+id/txtViewWelcome"
@@ -83,13 +83,13 @@
                 android:layout_marginEnd="24dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cd_notifications"
-                android:padding="8dp"
-                android:scaleType="fitCenter"
+                android:padding="0dp"
+                android:scaleType="center"
                 android:src="@drawable/ic_notifications"
                 app:layout_constraintBottom_toBottomOf="@id/imgPayments"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/imgPayments"
-                app:tint="?attr/colorOnSurface" />
+                app:tint="@color/icon_dark" />
 
             <!-- Invisible line that sits below the LOWEST of the three header views,
                  so anything anchored to it can never overlap the header -->
@@ -251,17 +251,15 @@
 
             <ImageView
                 android:id="@+id/imgReceipt"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="24dp"
                 android:contentDescription="@string/cd_receipt_icon"
-                android:padding="8dp"
-                android:scaleType="fitCenter"
                 android:src="@drawable/ic_receipt"
                 app:layout_constraintBottom_toBottomOf="@id/txtViewTransactionDesc"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="@id/txtViewTransactionTitle"
-                app:tint="?attr/colorOnSurface" />
+                app:tint="@color/icon_dark" />
 
             <ImageButton
                 android:id="@+id/imgForward"
@@ -270,13 +268,13 @@
                 android:layout_marginEnd="24dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cd_view_transaction"
-                android:padding="8dp"
-                android:scaleType="fitCenter"
+                android:padding="0dp"
+                android:scaleType="center"
                 android:src="@drawable/ic_forward"
                 app:layout_constraintBottom_toBottomOf="@id/txtViewTransactionDesc"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/txtViewTransactionTitle"
-                app:tint="?attr/colorOnSurface" />
+                app:tint="@color/icon_dark" />
 
             <TextView
                 android:id="@+id/txtViewTransactionTitle"

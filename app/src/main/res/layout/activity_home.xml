@@ -22,13 +22,13 @@
 
     <ImageView
         android:id="@+id/imgStudent"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="16dp"
         android:src="@drawable/ic_student"
         android:contentDescription="Student profile"
-        app:tint="?attr/colorOnSurface"
+        app:tint="@color/icon_dark"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/txtViewTitle" />
 
@@ -57,12 +57,12 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_marginEnd="24dp"
-        android:padding="8dp"
-        android:scaleType="fitCenter"
+        android:padding="0dp"
+        android:scaleType="center"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ic_notifications"
         android:contentDescription="Notifications"
-        app:tint="?attr/colorOnSurface"
+        app:tint="@color/icon_dark"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/imgStudent"
         app:layout_constraintBottom_toBottomOf="@id/imgStudent" />
@@ -107,13 +107,13 @@
     <!-- Row 1, left: Fees -->
     <ImageView
         android:id="@+id/imgPayments"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="24dp"
         android:src="@drawable/ic_payments"
         android:importantForAccessibility="no"
-        app:tint="?attr/colorOnSurface"
+        app:tint="@color/icon_dark"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/txtViewStudentOverview" />
 
@@ -141,12 +141,12 @@
     <!-- Row 1, right: Library -->
     <ImageView
         android:id="@+id/imgLibrary"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:src="@drawable/ic_library"
         android:importantForAccessibility="no"
-        app:tint="?attr/colorOnSurface"
+        app:tint="@color/icon_dark"
         app:layout_constraintStart_toStartOf="@id/guideCenter"
         app:layout_constraintTop_toTopOf="@id/imgPayments" />
 
@@ -174,13 +174,13 @@
     <!-- Row 2, left: Hostel -->
     <ImageView
         android:id="@+id/imgHostel"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="32dp"
         android:src="@drawable/ic_hostel"
         android:importantForAccessibility="no"
-        app:tint="?attr/colorOnSurface"
+        app:tint="@color/icon_dark"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/barrierRow1" />
 
@@ -208,12 +208,12 @@
     <!-- Row 2, right: Units -->
     <ImageView
         android:id="@+id/imgUnits"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:src="@drawable/ic_units"
         android:importantForAccessibility="no"
-        app:tint="?attr/colorOnSurface"
+        app:tint="@color/icon_dark"
         app:layout_constraintStart_toStartOf="@id/guideCenter"
         app:layout_constraintTop_toTopOf="@id/imgHostel" />
 
