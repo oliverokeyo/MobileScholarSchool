@@ -6,5 +6,5 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     app:menu="@menu/menu_bottom_nav"
-    app:itemIconSize="32dp"
+    app:itemIconTint="@color/bottom_nav_icon"
     app:labelVisibilityMode="labeled" />
