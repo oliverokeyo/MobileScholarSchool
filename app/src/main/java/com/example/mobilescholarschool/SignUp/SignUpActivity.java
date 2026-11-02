@@ -27,6 +27,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.R;
+import com.example.mobilescholarschool.Components.PasswordToggle;
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -92,6 +93,10 @@ public class SignUpActivity extends AppCompatActivity {
         checkBoxTC = findViewById(R.id.checkBoxTC);
         btnSignUp = findViewById(R.id.btnSignUp);
         txtViewLogin = findViewById(R.id.txtViewLogin);
+
+        // Make the eye icons clickable (show / hide password)
+        PasswordToggle.attach(editxtTxtPassword);
+        PasswordToggle.attach(editxtTxtConfirmPassword);
 
         txtViewLogin.setOnClickListener(new View.OnClickListener() {
             @Override
