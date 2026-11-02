@@ -20,6 +20,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.HomeTab.HomeActivity;
 import com.example.mobilescholarschool.R;
+import com.example.mobilescholarschool.Components.PasswordToggle;
 import com.example.mobilescholarschool.SignUp.SignUpActivity;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
@@ -51,6 +52,9 @@ public class SignInActivity extends AppCompatActivity {
         editPassword = findViewById(R.id.editTxtTxtPassword);
         btnSignIn = findViewById(R.id.btnSignIn);
         txtViewRegister = findViewById(R.id.txtViewRegister);
+
+        // Make the eye icons clickable (show / hide password)
+        PasswordToggle.attach(editPassword);
 
         btnSignIn.setOnClickListener(v -> attemptSignIn());
 
