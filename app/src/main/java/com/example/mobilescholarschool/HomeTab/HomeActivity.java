@@ -1,7 +1,11 @@
 package com.example.mobilescholarschool.HomeTab;
 
 import android.os.Bundle;
+import android.transition.AutoTransition;
+import android.transition.TransitionManager;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,6 +19,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
 import com.example.mobilescholarschool.R;
+import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -25,6 +30,9 @@ import java.util.Calendar;
 public class HomeActivity extends AppCompatActivity {
 
     private TextView txtViewWelcome, txtViewStudentID;
+
+    // The LinearLayout that holds all four cards (needed so the animation covers the whole grid)
+    private ViewGroup cardsContainer;
 
     private String profileName;
     private String studentId;
@@ -48,6 +56,12 @@ public class HomeActivity extends AppCompatActivity {
 
         // Reusable bottom bar: tell it which tab this screen is
         BottomNavHelper.setup(this, R.id.nav_home);
+
+        cardsContainer = findViewById(R.id.cardsContainer);
+        setupExpandableCard(R.id.cardFees, R.id.txtViewFeeDetails);
+        setupExpandableCard(R.id.cardLibrary, R.id.txtViewLibraryDetails);
+        setupExpandableCard(R.id.cardHostel, R.id.txtViewHostelDetails);
+        setupExpandableCard(R.id.cardUnits, R.id.txtViewUnitDetails);
 
         ImageButton btnNotifications = findViewById(R.id.imgNotifications);
         btnNotifications.setOnClickListener(v ->
@@ -135,6 +149,37 @@ public class HomeActivity extends AppCompatActivity {
                     showWelcome(user);
                     showStudentId();
                 });
+    }
+
+    /**
+     * Makes one card tappable: first tap grows it and reveals the hidden details,
+     * second tap shrinks it back and hides them again.
+     */
+    private void setupExpandableCard(int cardId, int detailsId) {
+        MaterialCardView card = findViewById(cardId);
+        View details = findViewById(detailsId);
+
+        // Convert 8dp to pixels so the "lift" looks the same on every screen density
+        float lift = 8 * getResources().getDisplayMetrics().density;
+
+        card.setOnClickListener(v -> {
+            boolean expanding = details.getVisibility() == View.GONE;
+
+            // 1. Tell Android to animate whatever layout change happens next
+            TransitionManager.beginDelayedTransition(cardsContainer, new AutoTransition());
+
+            // 2. The layout change: show or hide the details
+            details.setVisibility(expanding ? View.VISIBLE : View.GONE);
+
+            // 3. The scale animation (a visual effect on top of the layout change)
+            float scale = expanding ? 1.05f : 1f;
+            card.animate()
+                    .scaleX(scale)
+                    .scaleY(scale)
+                    .translationZ(expanding ? lift : 0f) // draws the card above its neighbour
+                    .setDuration(200)
+                    .start();
+        });
     }
 
     private void showWelcome(FirebaseUser user) {
