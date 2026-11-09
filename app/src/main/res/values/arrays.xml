@@ -8,4 +8,21 @@
         <item>Computing and Information Technology</item>
         <item>Business and Economics</item>
     </string-array>
+
+    <!-- Courses shown in the Course drop down on the Sign Up screen -->
+    <string-array name="course_list">
+        <item>Select Course</item>
+        <item>Bachelor of Education (Arts)</item>
+        <item>Bachelor of Education (Science)</item>
+        <item>Bachelor of Science in Computer Science</item>
+        <item>Bachelor of Science in Information Technology</item>
+        <item>Bachelor of Science in Software Engineering</item>
+        <item>Bachelor of Science in Civil Engineering</item>
+        <item>Bachelor of Science in Electrical Engineering</item>
+        <item>Bachelor of Science in Mechanical Engineering</item>
+        <item>Bachelor of Laws (LLB)</item>
+        <item>Bachelor of Commerce</item>
+        <item>Bachelor of Business Administration</item>
+        <item>Bachelor of Economics</item>
+    </string-array>
 </resources>
