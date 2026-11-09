@@ -53,6 +53,7 @@ public class SignUpActivity extends AppCompatActivity {
     RadioGroup radioGroupGender;
 
     Spinner spinnerDepartment;
+    Spinner spinnerCourse;
     Button btnSignUp;
 
     CheckBox checkBoxTC;
@@ -76,8 +77,12 @@ public class SignUpActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            // systemBars = status bar + navigation bar, ime = the on-screen keyboard.
+            // Including ime makes the ScrollView leave room for the keyboard so the
+            // whole form can be scrolled above it.
+            Insets bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return insets;
         });
 
@@ -90,6 +95,7 @@ public class SignUpActivity extends AppCompatActivity {
 
         radioGroupGender = findViewById(R.id.radioGroupGender);
         spinnerDepartment = findViewById(R.id.spinnerDepartment);
+        spinnerCourse = findViewById(R.id.spinnerCourse);
         checkBoxTC = findViewById(R.id.checkBoxTC);
         btnSignUp = findViewById(R.id.btnSignUp);
         txtViewLogin = findViewById(R.id.txtViewLogin);
@@ -135,8 +141,10 @@ public class SignUpActivity extends AppCompatActivity {
         String gender = radioGroupGender.getCheckedRadioButtonId() == R.id.radioMale
                 ? "Male" : "Female";
         String department = spinnerDepartment.getSelectedItem().toString();
+        String course = spinnerCourse.getSelectedItem().toString();
 
-        createAccount(fullName, idNumber, registrationNo, emailAddress, password, gender, department);
+        createAccount(fullName, idNumber, registrationNo, emailAddress, password,
+                gender, department, course);
     }
 
     private boolean isFormValid(String fullName, String idNumber, String registrationNo,
@@ -169,6 +177,10 @@ public class SignUpActivity extends AppCompatActivity {
         }
         if (spinnerDepartment.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select a department", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (spinnerCourse.getSelectedItemPosition() == 0) {
+            Toast.makeText(this, "Please select a course", Toast.LENGTH_SHORT).show();
             return false;
         }
         if (emailAddress.isEmpty()) {
@@ -213,7 +225,7 @@ public class SignUpActivity extends AppCompatActivity {
 
     private void createAccount(String fullName, String idNumber, String registrationNo,
                                String emailAddress, String password,
-                               String gender, String department) {
+                               String gender, String department, String course) {
 
         btnSignUp.setEnabled(false); // stop double taps while we wait
 
@@ -222,7 +234,7 @@ public class SignUpActivity extends AppCompatActivity {
         if (existing != null) {
             if (emailAddress.equalsIgnoreCase(existing.getEmail())) {
                 saveProfile(existing, fullName, idNumber, registrationNo,
-                        emailAddress, gender, department);
+                        emailAddress, gender, department, course);
                 return;
             }
             // A different account is signed in: sign it out so we never attach this
@@ -238,7 +250,7 @@ public class SignUpActivity extends AppCompatActivity {
                             FirebaseUser user = mAuth.getCurrentUser();
                             if (user != null) {
                                 saveProfile(user, fullName, idNumber, registrationNo,
-                                        emailAddress, gender, department);
+                                        emailAddress, gender, department, course);
                             }
                         } else {
                             btnSignUp.setEnabled(true);
@@ -251,7 +263,7 @@ public class SignUpActivity extends AppCompatActivity {
 
     private void saveProfile(FirebaseUser user, String fullName, String idNumber,
                              String registrationNo, String emailAddress,
-                             String gender, String department) {
+                             String gender, String department, String course) {
 
 
         Map<String, Object> profile = new HashMap<>();
@@ -261,6 +273,7 @@ public class SignUpActivity extends AppCompatActivity {
         profile.put("email", emailAddress);
         profile.put("gender", gender);
         profile.put("department", department);
+        profile.put("course", course);
         profile.put("createdAt", FieldValue.serverTimestamp());
 
         final int attempt = ++saveAttempt;
