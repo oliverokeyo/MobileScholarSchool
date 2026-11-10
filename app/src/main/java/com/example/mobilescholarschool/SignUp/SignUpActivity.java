@@ -25,9 +25,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.work.BackoffPolicy;                                   // NEW
+import androidx.work.Constraints;                                     // NEW
+import androidx.work.ExistingWorkPolicy;                              // NEW
+import androidx.work.NetworkType;                                     // NEW
+import androidx.work.OneTimeWorkRequest;                              // NEW
+import androidx.work.WorkManager;                                     // NEW
 
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.Components.PasswordToggle;
+import com.example.mobilescholarschool.Components.PendingRegistrationStore;   // NEW
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -39,8 +46,11 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import org.json.JSONObject;                                           // NEW
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;                                 // NEW
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -119,6 +129,9 @@ public class SignUpActivity extends AppCompatActivity {
         });
     }
 
+    // CHANGED: no longer refuses when offline. It now chooses between two paths:
+    //   online  -> create the account right now (original behaviour)
+    //   offline -> save the form on the device and let WorkManager finish it later
     private void attemptSignUp() {
         String fullName = editxtTxtFullName.getText().toString().trim();
         String idNumber = editxtTxtIDNumber.getText().toString().trim();
@@ -131,20 +144,58 @@ public class SignUpActivity extends AppCompatActivity {
             return;
         }
 
-        if (!isOnline()) {
-            Toast.makeText(this,
-                    "No internet connection. Creating an account needs internet.",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
-
         String gender = radioGroupGender.getCheckedRadioButtonId() == R.id.radioMale
                 ? "Male" : "Female";
         String department = spinnerDepartment.getSelectedItem().toString();
         String course = spinnerCourse.getSelectedItem().toString();
 
-        createAccount(fullName, idNumber, registrationNo, emailAddress, password,
-                gender, department, course);
+        if (isOnline()) {
+            createAccount(fullName, idNumber, registrationNo, emailAddress, password,
+                    gender, department, course);
+        } else {
+            queueForLater(fullName, idNumber, registrationNo, emailAddress, password,
+                    gender, department, course);
+        }
+    }
+
+    // NEW: the "drop box". Saves the form encrypted on the device, then asks WorkManager
+    // to run RegistrationSyncWorker as soon as the phone has an internet connection.
+    private void queueForLater(String fullName, String idNumber, String registrationNo,
+                               String email, String password,
+                               String gender, String department, String course) {
+        try {
+            JSONObject data = new JSONObject();
+            data.put("fullName", fullName);
+            data.put("idNumber", idNumber);
+            data.put("registrationNo", registrationNo);
+            data.put("email", email);
+            data.put("password", password);
+            data.put("gender", gender);
+            data.put("department", department);
+            data.put("course", course);
+            PendingRegistrationStore.save(this, data);
+
+            Constraints needsInternet = new Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED).build();
+
+            OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(RegistrationSyncWorker.class)
+                    .setConstraints(needsInternet)
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                    .build();
+
+            // KEEP = if a sync is already queued, don't stack a second one
+            WorkManager.getInstance(this)
+                    .enqueueUniqueWork("registration_sync", ExistingWorkPolicy.KEEP, work);
+
+            Toast.makeText(this,
+                    "Saved! Your account will be created when you're back online.",
+                    Toast.LENGTH_LONG).show();
+            goToSignIn();
+        } catch (Exception e) {
+            Log.e("SignUpActivity", "Could not queue registration", e);
+            Toast.makeText(this, "Could not save your details. Please try again.",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private boolean isFormValid(String fullName, String idNumber, String registrationNo,
