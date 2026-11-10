@@ -39,9 +39,13 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.material)
 
-    // NEW: Firebase BoM picks matching versions for Firebase libraries declared WITHOUT a version
+    // Offline registration: background sync + encrypted storage
+    implementation("androidx.work:work-runtime:2.9.1")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Firebase BoM picks matching versions for Firebase libraries declared WITHOUT a version
     implementation(platform("com.google.firebase:firebase-bom:34.17.0"))
-    // NEW: Cloud Firestore (fixes "Cannot resolve symbol 'firestore'")
+    // Cloud Firestore
     implementation("com.google.firebase:firebase-firestore")
 
     testImplementation(libs.junit)
