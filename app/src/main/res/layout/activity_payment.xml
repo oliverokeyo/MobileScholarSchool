@@ -65,17 +65,6 @@
                 app:layout_constraintStart_toEndOf="@id/imgPayments"
                 app:layout_constraintTop_toTopOf="@id/imgPayments" />
 
-            <TextView
-                android:id="@+id/txtViewStudentID"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/student_id_placeholder"
-                app:layout_constraintEnd_toEndOf="@id/txtViewWelcome"
-                app:layout_constraintStart_toStartOf="@id/txtViewWelcome"
-                app:layout_constraintTop_toBottomOf="@id/txtViewWelcome"
-                tools:text="Student ID: SB06/SR/1234/90" />
-
             <ImageButton
                 android:id="@+id/imgNotifications"
                 android:layout_width="48dp"
@@ -91,14 +80,14 @@
                 app:layout_constraintTop_toTopOf="@id/imgPayments"
                 app:tint="@color/icon_dark" />
 
-            <!-- Invisible line that sits below the LOWEST of the three header views,
+            <!-- Invisible line that sits below the LOWEST of the header views,
                  so anything anchored to it can never overlap the header -->
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/headerBarrier"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:barrierDirection="bottom"
-                app:constraint_referenced_ids="imgPayments,txtViewStudentID,imgNotifications" />
+                app:constraint_referenced_ids="imgPayments,txtViewWelcome,imgNotifications" />
 
             <TextView
                 android:id="@+id/txtViewStatus"
@@ -110,8 +99,7 @@
                 android:text="@string/registration_status_default"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/headerBarrier"
-                tools:text="Registration status:{ Registered/Pending }" />
+                app:layout_constraintTop_toBottomOf="@id/headerBarrier" />
 
             <!-- ===================== PAYMENT FORM ===================== -->
             <com.google.android.material.card.MaterialCardView
@@ -296,10 +284,77 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="@string/transaction_desc"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="@id/txtViewTransactionTitle"
                 app:layout_constraintStart_toStartOf="@id/txtViewTransactionTitle"
                 app:layout_constraintTop_toBottomOf="@id/txtViewTransactionTitle" />
+
+            <!-- ===================== STUDENT REGISTRATION ===================== -->
+
+            <TextView
+                android:id="@+id/txtViewStudentRegistration"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="32dp"
+                android:layout_marginEnd="24dp"
+                android:text="@string/student_registration"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewTransactionDesc" />
+
+            <ImageView
+                android:id="@+id/imgPrint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:contentDescription="@string/cd_print_icon"
+                android:src="@drawable/ic_print"
+                app:layout_constraintBottom_toBottomOf="@id/txtViewPrintDesc"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/txtViewPrintTitle"
+                app:tint="@color/icon_dark" />
+
+            <ImageButton
+                android:id="@+id/imgForwardPrint"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_print_registration"
+                android:padding="0dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_forward"
+                app:layout_constraintBottom_toBottomOf="@id/txtViewPrintDesc"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/txtViewPrintTitle"
+                app:tint="@color/icon_dark" />
+
+            <TextView
+                android:id="@+id/txtViewPrintTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/print_registration_title"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toStartOf="@id/imgForwardPrint"
+                app:layout_constraintStart_toEndOf="@id/imgPrint"
+                app:layout_constraintTop_toBottomOf="@id/txtViewStudentRegistration" />
+
+            <TextView
+                android:id="@+id/txtViewPrintDesc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/print_registration_desc"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="@id/txtViewPrintTitle"
+                app:layout_constraintStart_toStartOf="@id/txtViewPrintTitle"
+                app:layout_constraintTop_toBottomOf="@id/txtViewPrintTitle" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
