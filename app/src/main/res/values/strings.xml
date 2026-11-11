@@ -87,7 +87,7 @@
     <string name="cd_notifications">Notifications</string>
     <string name="payments_welcome">Manage payments securely through M-PESA.</string>
     <string name="student_id_placeholder">Student ID: --</string>
-    <string name="registration_status_default">Registration status: Pending/Registered</string>
+    <string name="registration_status_default">Registration status: { Registered / Unregistered }</string>
     <string name="make_a_payment">Make a Payment</string>
     <string name="label_student_number">Student Number</string>
     <string name="hint_student_number">Enter your student number</string>
@@ -101,4 +101,18 @@
     <string name="transaction_desc">Transaction history and receipts appear here.</string>
     <string name="cd_receipt_icon">Receipt</string>
     <string name="cd_view_transaction">View transaction history</string>
+    <string name="student_registration">Student Registration</string>
+    <string name="print_registration_title">Print Registration Details</string>
+    <string name="print_registration_desc">print registration details</string>
+    <string name="cd_print_icon">Print icon</string>
+    <string name="cd_print_registration">Print registration details</string>
+
+    <!-- Payment screen: validation errors and messages -->
+    <string name="error_phone_required">Enter your M-PESA phone number</string>
+    <string name="error_phone_letters">Phone number cannot contain letters</string>
+    <string name="error_phone_format">Use a format like 0712345678 or +254712345678</string>
+    <string name="error_amount_required">Enter the amount</string>
+    <string name="error_amount_invalid">Enter a whole number of 1 or more</string>
+    <string name="error_student_no_required">Enter your student number</string>
+    <string name="toast_enter_mpesa_pin">Enter your M-PESA PIN</string>
 </resources>
