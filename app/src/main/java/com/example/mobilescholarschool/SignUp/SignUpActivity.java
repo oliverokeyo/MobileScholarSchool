@@ -6,6 +6,9 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
@@ -22,8 +25,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.work.BackoffPolicy;                                   // NEW
+import androidx.work.Constraints;                                     // NEW
+import androidx.work.ExistingWorkPolicy;                              // NEW
+import androidx.work.NetworkType;                                     // NEW
+import androidx.work.OneTimeWorkRequest;                              // NEW
+import androidx.work.WorkManager;                                     // NEW
 
 import com.example.mobilescholarschool.R;
+import com.example.mobilescholarschool.Components.PasswordToggle;
+import com.example.mobilescholarschool.Components.PendingRegistrationStore;   // NEW
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -32,10 +43,14 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import org.json.JSONObject;                                           // NEW
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;                                 // NEW
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -48,6 +63,7 @@ public class SignUpActivity extends AppCompatActivity {
     RadioGroup radioGroupGender;
 
     Spinner spinnerDepartment;
+    Spinner spinnerCourse;
     Button btnSignUp;
 
     CheckBox checkBoxTC;
@@ -55,6 +71,13 @@ public class SignUpActivity extends AppCompatActivity {
 
     FirebaseAuth mAuth;
     FirebaseFirestore db;
+
+    // How long we wait for Firestore to confirm the profile
+    private static final long SAVE_TIMEOUT_MS = 15_000;
+    private final Handler timeoutHandler = new Handler(Looper.getMainLooper());
+    private Runnable saveTimeout;
+    // Numbers each save attempt so a late reply from an OLD attempt can be ignored
+    private int saveAttempt = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,8 +87,12 @@ public class SignUpActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            // systemBars = status bar + navigation bar, ime = the on-screen keyboard.
+            // Including ime makes the ScrollView leave room for the keyboard so the
+            // whole form can be scrolled above it.
+            Insets bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return insets;
         });
 
@@ -78,9 +105,14 @@ public class SignUpActivity extends AppCompatActivity {
 
         radioGroupGender = findViewById(R.id.radioGroupGender);
         spinnerDepartment = findViewById(R.id.spinnerDepartment);
+        spinnerCourse = findViewById(R.id.spinnerCourse);
         checkBoxTC = findViewById(R.id.checkBoxTC);
         btnSignUp = findViewById(R.id.btnSignUp);
         txtViewLogin = findViewById(R.id.txtViewLogin);
+
+        // Make the eye icons clickable (show / hide password)
+        PasswordToggle.attach(editxtTxtPassword);
+        PasswordToggle.attach(editxtTxtConfirmPassword);
 
         txtViewLogin.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -97,6 +129,9 @@ public class SignUpActivity extends AppCompatActivity {
         });
     }
 
+    // CHANGED: no longer refuses when offline. It now chooses between two paths:
+    //   online  -> create the account right now (original behaviour)
+    //   offline -> save the form on the device and let WorkManager finish it later
     private void attemptSignUp() {
         String fullName = editxtTxtFullName.getText().toString().trim();
         String idNumber = editxtTxtIDNumber.getText().toString().trim();
@@ -109,18 +144,58 @@ public class SignUpActivity extends AppCompatActivity {
             return;
         }
 
-        if (!isOnline()) {
-            Toast.makeText(this,
-                    "No internet connection. Creating an account needs internet.",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
-
         String gender = radioGroupGender.getCheckedRadioButtonId() == R.id.radioMale
                 ? "Male" : "Female";
         String department = spinnerDepartment.getSelectedItem().toString();
+        String course = spinnerCourse.getSelectedItem().toString();
 
-        createAccount(fullName, idNumber, registrationNo, emailAddress, password, gender, department);
+        if (isOnline()) {
+            createAccount(fullName, idNumber, registrationNo, emailAddress, password,
+                    gender, department, course);
+        } else {
+            queueForLater(fullName, idNumber, registrationNo, emailAddress, password,
+                    gender, department, course);
+        }
+    }
+
+    // NEW: the "drop box". Saves the form encrypted on the device, then asks WorkManager
+    // to run RegistrationSyncWorker as soon as the phone has an internet connection.
+    private void queueForLater(String fullName, String idNumber, String registrationNo,
+                               String email, String password,
+                               String gender, String department, String course) {
+        try {
+            JSONObject data = new JSONObject();
+            data.put("fullName", fullName);
+            data.put("idNumber", idNumber);
+            data.put("registrationNo", registrationNo);
+            data.put("email", email);
+            data.put("password", password);
+            data.put("gender", gender);
+            data.put("department", department);
+            data.put("course", course);
+            PendingRegistrationStore.save(this, data);
+
+            Constraints needsInternet = new Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED).build();
+
+            OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(RegistrationSyncWorker.class)
+                    .setConstraints(needsInternet)
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                    .build();
+
+            // KEEP = if a sync is already queued, don't stack a second one
+            WorkManager.getInstance(this)
+                    .enqueueUniqueWork("registration_sync", ExistingWorkPolicy.KEEP, work);
+
+            Toast.makeText(this,
+                    "Saved! Your account will be created when you're back online.",
+                    Toast.LENGTH_LONG).show();
+            goToSignIn();
+        } catch (Exception e) {
+            Log.e("SignUpActivity", "Could not queue registration", e);
+            Toast.makeText(this, "Could not save your details. Please try again.",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private boolean isFormValid(String fullName, String idNumber, String registrationNo,
@@ -153,6 +228,10 @@ public class SignUpActivity extends AppCompatActivity {
         }
         if (spinnerDepartment.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select a department", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (spinnerCourse.getSelectedItemPosition() == 0) {
+            Toast.makeText(this, "Please select a course", Toast.LENGTH_SHORT).show();
             return false;
         }
         if (emailAddress.isEmpty()) {
@@ -197,9 +276,22 @@ public class SignUpActivity extends AppCompatActivity {
 
     private void createAccount(String fullName, String idNumber, String registrationNo,
                                String emailAddress, String password,
-                               String gender, String department) {
+                               String gender, String department, String course) {
 
         btnSignUp.setEnabled(false); // stop double taps while we wait
+
+        // RETRY AFTER A TIMEOUT
+        FirebaseUser existing = mAuth.getCurrentUser();
+        if (existing != null) {
+            if (emailAddress.equalsIgnoreCase(existing.getEmail())) {
+                saveProfile(existing, fullName, idNumber, registrationNo,
+                        emailAddress, gender, department, course);
+                return;
+            }
+            // A different account is signed in: sign it out so we never attach this
+            // profile to the wrong person
+            mAuth.signOut();
+        }
 
         mAuth.createUserWithEmailAndPassword(emailAddress, password)
                 .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
@@ -209,7 +301,7 @@ public class SignUpActivity extends AppCompatActivity {
                             FirebaseUser user = mAuth.getCurrentUser();
                             if (user != null) {
                                 saveProfile(user, fullName, idNumber, registrationNo,
-                                        emailAddress, gender, department);
+                                        emailAddress, gender, department, course);
                             }
                         } else {
                             btnSignUp.setEnabled(true);
@@ -222,7 +314,7 @@ public class SignUpActivity extends AppCompatActivity {
 
     private void saveProfile(FirebaseUser user, String fullName, String idNumber,
                              String registrationNo, String emailAddress,
-                             String gender, String department) {
+                             String gender, String department, String course) {
 
 
         Map<String, Object> profile = new HashMap<>();
@@ -232,7 +324,11 @@ public class SignUpActivity extends AppCompatActivity {
         profile.put("email", emailAddress);
         profile.put("gender", gender);
         profile.put("department", department);
-        profile.put("createdAt", System.currentTimeMillis());
+        profile.put("course", course);
+        profile.put("createdAt", FieldValue.serverTimestamp());
+
+        final int attempt = ++saveAttempt;
+        startSaveTimeout(attempt);
 
         // Document id = the user's Firebase uid, so each login maps to exactly one profile
         db.collection("users").document(user.getUid())
@@ -240,7 +336,15 @@ public class SignUpActivity extends AppCompatActivity {
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
+                        if (attempt != saveAttempt) {
+                            return;
+                        }
+                        cancelSaveTimeout();
+
                         if (task.isSuccessful()) {
+                            if (isFinishing() || isDestroyed()) {
+                                return;
+                            }
                             Toast.makeText(SignUpActivity.this,
                                     "Account created successfully. Please sign in.",
                                     Toast.LENGTH_LONG).show();
@@ -249,9 +353,14 @@ public class SignUpActivity extends AppCompatActivity {
                             mAuth.signOut();
                             goToSignIn();
                         } else {
+                            Log.e("SignUpActivity", "Profile save failed", task.getException());
+
                             // Roll back: delete the half-finished account so the user can retry
                             // (otherwise retrying would say "email already registered")
                             user.delete();
+                            if (isFinishing() || isDestroyed()) {
+                                return;
+                            }
                             btnSignUp.setEnabled(true);
                             Toast.makeText(SignUpActivity.this,
                                     "Could not save your details. Please try again.",
@@ -259,6 +368,37 @@ public class SignUpActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void startSaveTimeout(int attempt) {
+        cancelSaveTimeout();
+        saveTimeout = () -> {
+            // Ignore if a newer attempt started, or the screen is already gone
+            if (attempt != saveAttempt || isFinishing() || isDestroyed()) {
+                return;
+            }
+            Log.w("SignUpActivity", "Profile save timed out after " + SAVE_TIMEOUT_MS + " ms");
+            btnSignUp.setEnabled(true);
+            Toast.makeText(SignUpActivity.this,
+                    "Saving is taking too long. Check your connection, then tap Sign Up again.",
+                    Toast.LENGTH_LONG).show();
+        };
+        timeoutHandler.postDelayed(saveTimeout, SAVE_TIMEOUT_MS);
+    }
+
+    /** Cancels the countdown, if one is running. */
+    private void cancelSaveTimeout() {
+        if (saveTimeout != null) {
+            timeoutHandler.removeCallbacks(saveTimeout);
+            saveTimeout = null;
+        }
+    }
+
+    /** Stop the countdown when the screen closes so it can't touch a dead screen. */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        cancelSaveTimeout();
     }
 
     private void showAuthError(Exception e) {

@@ -20,6 +20,7 @@
     <string name="label_gender">Gender</string>
     <string name="gender_male">Male</string>
     <string name="gender_female">Female</string>
+    <string name="label_course">Course</string>
     <string name="label_department">Department</string>
     <string name="hint_confirm_password">Confirm Password</string>
     <string name="agree_terms">I agree to the Terms and Conditions</string>

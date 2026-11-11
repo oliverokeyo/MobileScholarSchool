@@ -20,12 +20,17 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.HomeTab.HomeActivity;
 import com.example.mobilescholarschool.R;
+import com.example.mobilescholarschool.Components.PasswordToggle;
+import com.example.mobilescholarschool.Components.PendingRegistrationStore;       // NEW
+import com.example.mobilescholarschool.Components.RegistrationSyncScheduler;      // NEW
 import com.example.mobilescholarschool.SignUp.SignUpActivity;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
+
+import org.json.JSONObject;                                                       // NEW
 
 public class SignInActivity extends AppCompatActivity {
 
@@ -52,12 +57,16 @@ public class SignInActivity extends AppCompatActivity {
         btnSignIn = findViewById(R.id.btnSignIn);
         txtViewRegister = findViewById(R.id.txtViewRegister);
 
+        // Make the eye icons clickable (show / hide password)
+        PasswordToggle.attach(editPassword);
+
         btnSignIn.setOnClickListener(v -> attemptSignIn());
 
         txtViewRegister.setOnClickListener(v -> goToSignUp());
     }
 
     // If the user signed in earlier and never signed out, skip this screen
+    // (this is also why returning users already work offline: Firebase remembers them)
     @Override
     protected void onStart() {
         super.onStart();
@@ -66,11 +75,27 @@ public class SignInActivity extends AppCompatActivity {
         }
     }
 
+    // CHANGED: checks for a pending (not yet synced) registration BEFORE the offline check
     private void attemptSignIn() {
         String emailAddress = editEmail.getText().toString().trim();
         String password = editPassword.getText().toString();   // never trimmed
 
         if (!isFormValid(emailAddress, password)) {
+            return;
+        }
+
+        // NEW: this student registered offline and the account is not on the server yet.
+        // Firebase would say "Incorrect email or password", which would be wrong and
+        // alarming, so we explain what is really happening instead.
+        if (isPendingRegistration(emailAddress, password)) {
+            // Safety net: make sure the sync job is scheduled (KEEP prevents duplicates)
+            RegistrationSyncScheduler.enqueue(this);
+
+            String message = isOnline()
+                    ? "Finishing setting up your account. Please try again in a moment."
+                    : "Your registration is saved on this device. Connect to the internet "
+                    + "and your account will be created automatically.";
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -82,6 +107,23 @@ public class SignInActivity extends AppCompatActivity {
         }
 
         login(emailAddress, password);
+    }
+
+    /**
+     * NEW: true if the typed email AND password match the registration waiting in the
+     * encrypted outbox. Matching the password too means a stranger who only knows the
+     * email learns nothing about whether a registration is pending.
+     */
+    private boolean isPendingRegistration(String emailAddress, String password) {
+        try {
+            JSONObject pending = PendingRegistrationStore.load(this);
+            return pending != null
+                    && emailAddress.equalsIgnoreCase(pending.optString("email"))
+                    && password.equals(pending.optString("password"));
+        } catch (Exception e) {
+            // If the store cannot be read, behave as if nothing is pending
+            return false;
+        }
     }
 
     private boolean isFormValid(String emailAddress, String password) {

@@ -1,6 +1,7 @@
 package com.example.mobilescholarschool.PaymentsTab;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -12,15 +13,13 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
 import com.example.mobilescholarschool.R;
-<<<<<<< Updated upstream
-=======
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
->>>>>>> Stashed changes
 
 import java.util.regex.Pattern;
 
@@ -43,8 +42,6 @@ public class PaymentActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-<<<<<<< Updated upstream
-=======
 
         // Payment screen must never be reachable while signed out.
         if (AuthGuard.redirectIfSignedOut(this)) {
@@ -67,7 +64,6 @@ public class PaymentActivity extends AppCompatActivity {
     // ------------------------------------------------------------------
 
     private void setupEdgeToEdge() {
->>>>>>> Stashed changes
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_payment);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -82,20 +78,6 @@ public class PaymentActivity extends AppCompatActivity {
         editStudentNo = findViewById(R.id.editTxtTxtStudentNo);
         editAmount = findViewById(R.id.editTxtNumberAmount);
         editPhone = findViewById(R.id.editTxtNumberPhoneNo);
-<<<<<<< Updated upstream
-
-        btnPayment.setOnClickListener(v -> {
-            if (inputsAreComplete()) {
-                Toast.makeText(
-                        PaymentActivity.this,
-                        "Enter your M-PESA PIN",
-                        Toast.LENGTH_LONG
-                ).show();
-            }
-        });
-    }
-
-=======
     }
 
     // ------------------------------------------------------------------
@@ -146,7 +128,6 @@ public class PaymentActivity extends AppCompatActivity {
     // Validation
     // ------------------------------------------------------------------
 
->>>>>>> Stashed changes
     private boolean inputsAreComplete() {
         String studentNo = removeSpaces(editStudentNo.getText().toString());
         String amount = removeSpaces(editAmount.getText().toString());
@@ -160,40 +141,7 @@ public class PaymentActivity extends AppCompatActivity {
         boolean amountOk = check(editAmount, amountError(amount));
         boolean studentNoOk = check(editStudentNo, studentNoError(studentNo));
 
-<<<<<<< Updated upstream
-        // --- Phone: required, and must not contain any letters ---
-        if (phone.isEmpty()) {
-            editPhone.setError("Enter your M-PESA phone number");
-            editPhone.requestFocus();
-            complete = false;
-        } else if (containsLetters(phone)) {
-            editPhone.setError("Phone number cannot contain letters");
-            editPhone.requestFocus();
-            complete = false;
-        }
-
-        // --- Amount: required, and must be at least 1 ---
-        if (amount.isEmpty()) {
-            editAmount.setError("Enter the amount");
-            editAmount.requestFocus();
-            complete = false;
-        } else if (!isAtLeastOne(amount)) {
-            editAmount.setError("Amount must be at least 1");
-            editAmount.requestFocus();
-            complete = false;
-        }
-
-        // --- Student number: required ---
-        if (studentNo.isEmpty()) {
-            editStudentNo.setError("Enter your student number");
-            editStudentNo.requestFocus();
-            complete = false;
-        }
-
-        return complete;
-=======
         return phoneOk && amountOk && studentNoOk;
->>>>>>> Stashed changes
     }
 
     /**
