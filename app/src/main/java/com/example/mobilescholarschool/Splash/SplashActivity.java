@@ -11,8 +11,10 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.mobilescholarschool.HomeTab.HomeActivity;
+import com.example.mobilescholarschool.Onboarding.OnboardingActivity;
 import com.example.mobilescholarschool.R;
-import com.example.mobilescholarschool.SignIn.SignInActivity;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class SplashActivity extends AppCompatActivity {
 
@@ -22,8 +24,16 @@ public class SplashActivity extends AppCompatActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     // The job to run after the delay. Kept in a field so onDestroy can cancel it.
-    private final Runnable openSignIn = () -> {
-        Intent intent = new Intent(SplashActivity.this, SignInActivity.class);
+    private final Runnable openNextScreen = () -> {
+        // Firebase remembers the session on the device: null means nobody is signed in.
+        boolean isLoggedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
+
+        // Logged out -> onboarding every launch. Logged in -> straight to Home.
+        Class<?> destination = isLoggedIn
+                ? HomeActivity.class
+                : OnboardingActivity.class;
+
+        Intent intent = new Intent(SplashActivity.this, destination);
         startActivity(intent);
         finish();   // remove the splash from the back stack so Back can't return to it
     };
@@ -39,13 +49,13 @@ public class SplashActivity extends AppCompatActivity {
             return insets;
         });
 
-        handler.postDelayed(openSignIn, SPLASH_DELAY_MS);
+        handler.postDelayed(openNextScreen, SPLASH_DELAY_MS);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // If the splash closes early (rotation, user leaves), cancel the waiting job so it can't later open a second Sign In screen.
-        handler.removeCallbacks(openSignIn);
+        // If the splash closes early (rotation, user leaves), cancel the waiting job so it can't later open a second screen.
+        handler.removeCallbacks(openNextScreen);
     }
 }

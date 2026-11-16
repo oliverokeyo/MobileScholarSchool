@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- angle 90 = gradient runs bottom -> top, so startColor sits at the bottom -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="90"
+        android:startColor="@color/onboarding_scrim_dark"
+        android:centerColor="@color/onboarding_scrim_mid"
+        android:endColor="@color/onboarding_scrim_clear" />
+</shape>

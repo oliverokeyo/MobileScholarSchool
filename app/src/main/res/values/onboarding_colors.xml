@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="onboarding_scrim_dark">#E6000000</color>
+    <color name="onboarding_scrim_mid">#66000000</color>
+    <color name="onboarding_scrim_clear">#00000000</color>
+    <color name="onboarding_text_primary">#FFFFFF</color>
+    <color name="onboarding_text_secondary">#E6FFFFFF</color>
+    <color name="onboarding_dot_default">#80FFFFFF</color>
+    <color name="onboarding_dot_selected">#FFFFFF</color>
+    <color name="onboarding_button_bg">#FFFFFF</color>
+    <color name="onboarding_button_text">#1B1B1F</color>
+</resources>
