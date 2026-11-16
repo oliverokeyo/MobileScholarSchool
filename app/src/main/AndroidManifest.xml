@@ -47,10 +47,6 @@
             android:theme="@style/Theme.Material3.Light.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".MainActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
             android:name=".HomeTab.HomeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
@@ -64,6 +60,10 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".PaymentsTab.PaymentActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".Onboarding.OnboardingActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
     </application>

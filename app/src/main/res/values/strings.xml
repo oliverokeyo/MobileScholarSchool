@@ -116,4 +116,15 @@
     <string name="error_amount_invalid">Enter a whole number of 1 or more</string>
     <string name="error_student_no_required">Enter your student number</string>
     <string name="toast_enter_mpesa_pin">Enter your M-PESA PIN</string>
+
+    <!-- Onboarding screen -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_title_campus">Your Campus, One Place</string>
+    <string name="onboarding_desc_campus">Access essential campus services, stay updated and manage your student life from one convenient place.</string>
+    <string name="onboarding_title_library">Your library, anywhere</string>
+    <string name="onboarding_desc_library">Discover books, request resources and manage your borrowing activities with ease.</string>
+    <string name="onboarding_title_hostel">Find Your Space</string>
+    <string name="onboarding_desc_hostel">Explore available accommodation, discover suitable rooms and make your hostel arrangements effortlessly.</string>
 </resources>
