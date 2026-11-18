@@ -4,4 +4,10 @@
     <color name="white">#FFFFFFFF</color>
     <color name="icon_dark">#FF000000</color>
     <color name="icon_dark_muted">#FF000000</color>
+
+    <!-- Floating pill bottom navigation -->
+    <color name="floating_nav_pill_bg">#FFFFFFFF</color>
+    <color name="floating_nav_active_bg">#FFE8EAF6</color>
+    <color name="floating_nav_active_content">#FF3949AB</color>
+    <color name="floating_nav_inactive">#FF757575</color>
 </resources>
