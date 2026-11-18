@@ -1,10 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.bottomnavigation.BottomNavigationView
+<!--
+    Outer wrapper: transparent, full width. It only exists to (a) center the pill
+    and (b) give the shadow room so it isn't clipped. No margins anywhere.
+    Its height (80dp) and the pill's width/height are re-applied by BottomNavHelper
+    so an <include> can't stretch them.
+-->
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/bottomNav"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    app:menu="@menu/menu_bottom_nav"
-    app:itemIconTint="@color/bottom_nav_icon"
-    app:labelVisibilityMode="labeled" />
+    android:layout_height="80dp"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:paddingStart="8dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="12dp">
+
+    <!-- The pill: fixed width (set by BottomNavHelper), 60dp tall, centered, fully rounded. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/pillCard"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_gravity="center_horizontal"
+        app:cardBackgroundColor="@color/floating_nav_pill_bg"
+        app:cardCornerRadius="30dp"
+        app:cardElevation="4dp"
+        app:strokeWidth="0dp">
+
+        <!-- BottomNavHelper fills this row with one tab per menu item. -->
+        <LinearLayout
+            android:id="@+id/pillContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="6dp" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+</FrameLayout>
