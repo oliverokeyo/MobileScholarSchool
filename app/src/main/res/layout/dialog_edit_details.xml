@@ -63,6 +63,20 @@
                 android:text="@string/gender_female" />
         </RadioGroup>
 
+        <!-- NEW: Course drop down. Uses the same course_list array as the Sign Up
+             screen, so the two screens always offer exactly the same choices. -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/label_course" />
+
+        <Spinner
+            android:id="@+id/dlgCourse"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:entries="@array/course_list" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
