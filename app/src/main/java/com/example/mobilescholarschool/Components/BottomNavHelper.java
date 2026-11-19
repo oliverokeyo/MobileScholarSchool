@@ -5,7 +5,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.Menu;
@@ -48,6 +50,29 @@ public final class BottomNavHelper {
     private static final int MAX_PILL_WIDTH_DP = 420;   // stops the pill getting huge on tablets
     private static final int TAB_HEIGHT_DP = 48;        // each tab (60 - 6dp padding on both sides)
 
+    /** Swipe directions. NEXT = the tab to the right of this one, PREVIOUS = to the left. */
+    public static final int DIRECTION_NEXT = 1;
+    public static final int DIRECTION_PREVIOUS = -1;
+
+    // Notes passed from the screen we are leaving to the screen we open, inside the Intent.
+    // They let the new screen continue the transition instead of starting from scratch.
+    static final String EXTRA_FROM_TAB = "com.example.mobilescholarschool.FROM_TAB";
+    static final String EXTRA_ENTER_DIRECTION = "com.example.mobilescholarschool.ENTER_DIRECTION";
+
+    // ---- TEMPORARY DIAGNOSTICS: delete this block (and the logSinceHandoff calls) once the ----
+    // ---- white-screen delay is understood. Filter Logcat by the tag "SwipeTiming".          ----
+    static final String TIMING_TAG = "SwipeTiming";
+
+    /** Uptime (ms) when a swipe opened the next screen; 0 = no swipe being measured. */
+    static long handoffUptimeMs = 0;
+
+    /** Logs "+N ms label", counted from the moment the previous screen opened this one. */
+    static void logSinceHandoff(String label) {
+        if (handoffUptimeMs != 0) {
+            Log.d(TIMING_TAG, "+" + (SystemClock.uptimeMillis() - handoffUptimeMs) + " ms  " + label);
+        }
+    }
+
     private BottomNavHelper() {}   // utility class: nobody should create one
 
     /**
@@ -55,6 +80,7 @@ public final class BottomNavHelper {
      * @param selectedItemId the tab that matches the current screen, e.g. R.id.nav_home
      */
     public static void setup(Activity activity, int selectedItemId) {
+        logSinceHandoff(activity.getClass().getSimpleName() + ": BottomNavHelper.setup reached");
         // sceneRoot = the outermost view the animation should cover (wrapper + card + tabs).
         ViewGroup sceneRoot = activity.findViewById(R.id.bottomNav);
         View card = activity.findViewById(R.id.pillCard);
@@ -64,8 +90,17 @@ public final class BottomNavHelper {
 
         PillNav nav = new PillNav(activity, sceneRoot, container, R.menu.menu_bottom_nav);
 
-        // Highlight the current tab (no animation, no listener call).
-        nav.select(selectedItemId, false);
+        int fromTabId = activity.getIntent().getIntExtra(EXTRA_FROM_TAB, View.NO_ID);
+        if (fromTabId != View.NO_ID && fromTabId != selectedItemId) {
+            // We arrived by swiping. Start with the pill on the tab we CAME FROM, so it looks
+            // identical to the previous screen, then spring it across to our own tab once the
+            // first frame has been laid out (an animation needs a "before" to animate from).
+            nav.select(fromTabId, false);
+            sceneRoot.post(() -> nav.select(selectedItemId, true));
+        } else {
+            // Highlight the current tab (no animation, no listener call).
+            nav.select(selectedItemId, false);
+        }
 
         nav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -138,6 +173,71 @@ public final class BottomNavHelper {
         if (itemId == R.id.nav_payments) return PaymentActivity.class;
         if (itemId == R.id.nav_profile) return ProfileActivity.class;
         return null;   // screen not built yet
+    }
+
+    /**
+     * The tab next to this one: DIRECTION_NEXT = on the right, DIRECTION_PREVIOUS = on the left.
+     * @return that tab's id, or View.NO_ID if this is the first/last tab
+     */
+    public static int neighborTabId(Activity activity, int currentItemId, int direction) {
+        List<Integer> order = tabOrder(activity);
+        int index = order.indexOf(currentItemId);
+        if (index == -1) {
+            return View.NO_ID;   // this screen is not one of the tabs
+        }
+        int neighborIndex = index + direction;
+        if (neighborIndex < 0 || neighborIndex >= order.size()) {
+            return View.NO_ID;
+        }
+        return order.get(neighborIndex);
+    }
+
+    /** The bar's exact height in pixels, so the skeleton can stop just above it. */
+    static int barHeightPx(Context context) {
+        return dp(context, BAR_HEIGHT_DP);
+    }
+
+    /**
+     * Opens another tab's screen (used by SwipeNavigator). Works like a tap on the bar, plus two
+     * notes in the Intent so the new screen can continue the swipe animation:
+     * which tab we came from, and which side it should slide in from.
+     */
+    public static void openTab(Activity activity, int toItemId, int fromItemId, int direction) {
+        Class<?> target = destinationFor(toItemId);
+        if (target == null) {
+            return;
+        }
+        Intent intent = new Intent(activity, target);
+        intent.putExtra(EXTRA_FROM_TAB, fromItemId);
+        intent.putExtra(EXTRA_ENTER_DIRECTION, direction);
+        handoffUptimeMs = SystemClock.uptimeMillis();   // DIAGNOSTIC: start the stopwatch
+        Log.d(TIMING_TAG, "+0 ms  " + activity.getClass().getSimpleName()
+                + " is opening " + target.getSimpleName());
+        activity.startActivity(intent);
+        activity.overridePendingTransition(0, 0);   // the springs ARE the animation
+        activity.finish();
+    }
+
+    /**
+     * The tab ids in the same left-to-right order as the bar, read from menu_bottom_nav.xml.
+     * Reading the menu (instead of hard-coding a list) means that if you ever reorder or add
+     * a tab in the menu, swiping follows automatically. Tabs with no screen yet are skipped.
+     */
+    private static List<Integer> tabOrder(Activity activity) {
+        List<Integer> ids = new ArrayList<>();
+
+        // Same trick PillNav uses: a PopupMenu hands us an empty Menu to inflate into.
+        View anchor = activity.findViewById(android.R.id.content);
+        Menu menu = new PopupMenu(activity, anchor).getMenu();
+        new MenuInflater(activity).inflate(R.menu.menu_bottom_nav, menu);
+
+        for (int i = 0; i < menu.size(); i++) {
+            MenuItem item = menu.getItem(i);
+            if (item.isVisible() && destinationFor(item.getItemId()) != null) {
+                ids.add(item.getItemId());
+            }
+        }
+        return ids;
     }
 
     /** Converts dp to pixels so sizes look the same on every screen density. */
