@@ -2,6 +2,7 @@ package com.example.mobilescholarschool.HostelTab;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -16,6 +17,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SwipeNavigator;
 import com.example.mobilescholarschool.R;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -32,6 +34,9 @@ import java.util.Map;
 
 
 public class HostelActivity extends AppCompatActivity {
+
+    // Drag-to-switch-tab with spring animation. Null until the screen is set up.
+    private SwipeNavigator swipeNavigator;
 
     private static final String TAG = "HostelActivity";
 
@@ -64,6 +69,19 @@ public class HostelActivity extends AppCompatActivity {
     private boolean hasActiveBooking = false;   // true while a booking is pending or approved
     private String originalLocationText, originalSharingText, originalRoomText, originalBudgetText;
 
+    /**
+     * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
+     * navigator first: if the user is dragging sideways it takes over (returns true) and the
+     * views underneath never see that gesture. Otherwise everything works exactly as before.
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeNavigator != null && swipeNavigator.onTouchEvent(ev)) {
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,6 +101,8 @@ public class HostelActivity extends AppCompatActivity {
 
         // Highlight the Hostel tab and make the other tabs navigate
         BottomNavHelper.setup(this, R.id.nav_hostel);
+        // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
+        swipeNavigator = new SwipeNavigator(this, R.id.nav_hostel);
 
         // Replaces the fixed "Student ID:(SB06/SR/1234/90)" text from the layout straight away,
         txtViewStudentID = findViewById(R.id.txtViewStudentID);
