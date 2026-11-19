@@ -2,6 +2,7 @@ package com.example.mobilescholarschool.LibraryTab;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
@@ -16,6 +17,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SwipeNavigator;
 import com.example.mobilescholarschool.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.Timestamp;
@@ -42,6 +44,9 @@ import java.util.Map;
  */
 public class LibraryTabActivity extends AppCompatActivity {
 
+    // Drag-to-switch-tab with spring animation. Null until the screen is set up.
+    private SwipeNavigator swipeNavigator;
+
     private static final String TAG = "LibraryTabActivity";
     private static final int MAX_RESULTS = 20;
 
@@ -65,6 +70,19 @@ public class LibraryTabActivity extends AppCompatActivity {
     private ListenerRegistration requestsListener;
     private ListenerRegistration loansListener;
 
+    /**
+     * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
+     * navigator first: if the user is dragging sideways it takes over (returns true) and the
+     * views underneath never see that gesture. Otherwise everything works exactly as before.
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeNavigator != null && swipeNavigator.onTouchEvent(ev)) {
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,6 +102,8 @@ public class LibraryTabActivity extends AppCompatActivity {
 
         // Highlight the Library tab and make the other tabs clickable
         BottomNavHelper.setup(this, R.id.nav_library);
+        // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
+        swipeNavigator = new SwipeNavigator(this, R.id.nav_library);
 
         editSearch = findViewById(R.id.editTxtTxt);
 

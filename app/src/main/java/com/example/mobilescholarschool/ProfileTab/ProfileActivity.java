@@ -7,6 +7,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,6 +24,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SwipeNavigator;
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -37,6 +39,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ProfileActivity extends AppCompatActivity {
+
+    // Drag-to-switch-tab with spring animation. Null until the screen is set up.
+    private SwipeNavigator swipeNavigator;
 
     FirebaseAuth auth;
     FirebaseUser user;
@@ -53,6 +58,19 @@ public class ProfileActivity extends AppCompatActivity {
 
     // The latest saved values. They pre-fill the edit dialog and feed the screen.
     String currentFullName, currentIdNumber, currentRegNo, currentGender, currentDepartment;
+
+    /**
+     * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
+     * navigator first: if the user is dragging sideways it takes over (returns true) and the
+     * views underneath never see that gesture. Otherwise everything works exactly as before.
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeNavigator != null && swipeNavigator.onTouchEvent(ev)) {
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +95,8 @@ public class ProfileActivity extends AppCompatActivity {
         // Signed in: highlight the Profile tab and make the other tabs navigate.
         // After the null check so a signed-out user is never shown the bar.
         BottomNavHelper.setup(this, R.id.nav_profile);
+        // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
+        swipeNavigator = new SwipeNavigator(this, R.id.nav_profile);
 
         db = FirebaseFirestore.getInstance();
 

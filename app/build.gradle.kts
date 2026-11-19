@@ -43,6 +43,9 @@ dependencies {
     implementation("androidx.work:work-runtime:2.9.1")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
+    // Spring physics for the swipe-between-tabs transition (SwipeNavigator)
+    implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
+
     // Firebase BoM picks matching versions for Firebase libraries declared WITHOUT a version
     implementation(platform("com.google.firebase:firebase-bom:34.17.0"))
     // Cloud Firestore

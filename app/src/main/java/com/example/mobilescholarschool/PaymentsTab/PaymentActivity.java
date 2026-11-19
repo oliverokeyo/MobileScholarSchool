@@ -2,6 +2,7 @@ package com.example.mobilescholarschool.PaymentsTab;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -15,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SwipeNavigator;
 import com.example.mobilescholarschool.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -24,6 +26,9 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.regex.Pattern;
 
 public class PaymentActivity extends AppCompatActivity {
+
+    // Drag-to-switch-tab with spring animation. Null until the screen is set up.
+    private SwipeNavigator swipeNavigator;
 
     private static final String TAG = "PaymentActivity";
 
@@ -39,6 +44,19 @@ public class PaymentActivity extends AppCompatActivity {
     private Button btnPayment;
     private EditText editStudentNo, editAmount, editPhone;
 
+    /**
+     * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
+     * navigator first: if the user is dragging sideways it takes over (returns true) and the
+     * views underneath never see that gesture. Otherwise everything works exactly as before.
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeNavigator != null && swipeNavigator.onTouchEvent(ev)) {
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +70,8 @@ public class PaymentActivity extends AppCompatActivity {
 
         // Bottom navigation: highlight the Payments tab and wire up the other tabs.
         BottomNavHelper.setup(this, R.id.nav_payments);
+        // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
+        swipeNavigator = new SwipeNavigator(this, R.id.nav_payments);
 
         bindViews();
         prefillStudentNumber();
