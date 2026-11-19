@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.transition.AutoTransition;
 import android.transition.TransitionManager;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
@@ -19,6 +20,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SwipeNavigator;
 import com.example.mobilescholarschool.LibraryTab.BorrowedBooksDialogFragment;
 import com.example.mobilescholarschool.R;
 import com.google.android.material.card.MaterialCardView;
@@ -42,6 +44,9 @@ import java.util.Map;
 import java.util.TimeZone;
 
 public class HomeActivity extends AppCompatActivity {
+
+    // Drag-to-switch-tab with spring animation. Null until the screen is set up.
+    private SwipeNavigator swipeNavigator;
 
     private static final String TAG = "HomeActivity";
 
@@ -76,6 +81,19 @@ public class HomeActivity extends AppCompatActivity {
     private boolean unitsLoaded = false;
     private Long registrationDeadlineMillis;
 
+    /**
+     * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
+     * navigator first: if the user is dragging sideways it takes over (returns true) and the
+     * views underneath never see that gesture. Otherwise everything works exactly as before.
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeNavigator != null && swipeNavigator.onTouchEvent(ev)) {
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,6 +110,8 @@ public class HomeActivity extends AppCompatActivity {
 
         // Reusable bottom bar: tell it which tab this screen is
         BottomNavHelper.setup(this, R.id.nav_home);
+        // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
+        swipeNavigator = new SwipeNavigator(this, R.id.nav_home);
 
         cardsContainer = findViewById(R.id.cardsContainer);
         setupExpandableCard(R.id.cardFees, R.id.txtViewFeeDetails);
