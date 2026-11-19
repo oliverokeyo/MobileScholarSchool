@@ -6,9 +6,15 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Bundle;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
@@ -48,16 +54,22 @@ public class ProfileActivity extends AppCompatActivity {
     FirebaseFirestore db;
     ListenerRegistration profileListener;   // lets us stop listening when we sign out
 
-    Button btnSignOut, btnEditDetails;
-    TextView txtViewWelcome,
+    // Kept in a FIELD (not a local variable) so it can't be garbage collected
+    // while the invisible WebView is still rendering the print page.
+    WebView printWebView;
+
+    Button btnSignOut, btnChange, btnPrintSummary;
+    TextView txtViewProfileName,
             txtViewProfileEmail,
             txtViewProfileRegNo,
             txtViewProfileIdNumber,
-            txtViewProfileDepartment,
-            txtViewProfileGender;
+            txtViewProfileGender,
+            txtViewProfileCourse,
+            txtViewProfileDepartment;
 
     // The latest saved values. They pre-fill the edit dialog and feed the screen.
-    String currentFullName, currentIdNumber, currentRegNo, currentGender, currentDepartment;
+    String currentFullName, currentIdNumber, currentRegNo, currentGender,
+            currentCourse, currentDepartment;
 
     /**
      * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
@@ -101,22 +113,28 @@ public class ProfileActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         btnSignOut = findViewById(R.id.btnSignOut);
-        btnEditDetails = findViewById(R.id.btnEditDetails);
-        txtViewWelcome = findViewById(R.id.txtViewWelcome);
+        btnChange = findViewById(R.id.btnChange);
+        btnPrintSummary = findViewById(R.id.btnPrintSummary);
+        txtViewProfileName = findViewById(R.id.txtViewProfileName);
         txtViewProfileEmail = findViewById(R.id.txtViewProfileEmail);
         txtViewProfileRegNo = findViewById(R.id.txtViewProfileRegNo);
         txtViewProfileIdNumber = findViewById(R.id.txtViewProfileIdNumber);
-        txtViewProfileDepartment = findViewById(R.id.txtViewProfileDepartment);
         txtViewProfileGender = findViewById(R.id.txtViewProfileGender);
+        txtViewProfileCourse = findViewById(R.id.txtViewProfileCourse);
+        txtViewProfileDepartment = findViewById(R.id.txtViewProfileDepartment);
 
-        txtViewProfileEmail.setText(getString(R.string.profile_email, orDash(user.getEmail())));
+        // The email comes from Firebase Auth, so it can be shown immediately.
+        // The layout now holds the label ("Email"), so we set ONLY the value here.
+        txtViewProfileEmail.setText(orDash(user.getEmail()));
 
-        // Nothing to edit until the profile has loaded
-        btnEditDetails.setEnabled(false);
+        // Nothing to change or print until the profile has loaded
+        btnChange.setEnabled(false);
+        btnPrintSummary.setEnabled(false);
 
         listenToProfile();
 
-        btnEditDetails.setOnClickListener(v -> showEditDialog());
+        btnChange.setOnClickListener(v -> showEditDialog());
+        btnPrintSummary.setOnClickListener(v -> printSummary());
         btnSignOut.setOnClickListener(v -> signOut());
     }
 
@@ -128,9 +146,9 @@ public class ProfileActivity extends AppCompatActivity {
         profileListener = db.collection("users").document(user.getUid())
                 .addSnapshotListener(this, (doc, error) -> {
                     if (error != null) {
-                        // NEW: log the real reason (e.g. PERMISSION_DENIED) for Logcat
+                        // Log the real reason (e.g. PERMISSION_DENIED) for Logcat
                         Log.e("ProfileActivity", "Profile listener failed", error);
-                        txtViewWelcome.setText(R.string.profile_load_failed);
+                        txtViewProfileName.setText(R.string.profile_load_failed);
                         Toast.makeText(ProfileActivity.this,
                                 "Could not load your profile. Check your connection.",
                                 Toast.LENGTH_LONG).show();
@@ -138,7 +156,7 @@ public class ProfileActivity extends AppCompatActivity {
                     }
 
                     if (doc == null || !doc.exists()) {
-                        txtViewWelcome.setText(R.string.profile_not_found);
+                        txtViewProfileName.setText(R.string.profile_not_found);
                         return;
                     }
 
@@ -146,22 +164,104 @@ public class ProfileActivity extends AppCompatActivity {
                     currentIdNumber = doc.getString("idNumber");
                     currentRegNo = doc.getString("registrationNo");
                     currentGender = doc.getString("gender");
+                    currentCourse = doc.getString("course");
                     currentDepartment = doc.getString("department");
 
                     displayProfile();
-                    btnEditDetails.setEnabled(true);   // safe to edit now
+                    btnChange.setEnabled(true);         // safe to edit now
+                    btnPrintSummary.setEnabled(true);   // and safe to print
                 });
     }
 
-    /** One place that paints the profile; used after loading AND after saving an edit. */
+    /**
+     * One place that paints the profile; used after loading AND after saving an edit.
+     * (The registration status pill is not here: its text is fixed in activity_profile.xml.)
+     */
     private void displayProfile() {
-        txtViewWelcome.setText(getString(R.string.welcome_user, orDash(currentFullName)));
-        txtViewProfileRegNo.setText(getString(R.string.profile_reg_no, orDash(currentRegNo)));
-        txtViewProfileIdNumber.setText(getString(R.string.profile_id_number, orDash(currentIdNumber)));
-        txtViewProfileDepartment.setText(getString(R.string.profile_department, orDash(currentDepartment)));
-        txtViewProfileGender.setText(getString(R.string.profile_gender, orDash(currentGender)));
+        txtViewProfileName.setText(orDash(currentFullName));
+        txtViewProfileRegNo.setText(orDash(currentRegNo));
+        txtViewProfileIdNumber.setText(orDash(currentIdNumber));
+        txtViewProfileGender.setText(orDash(currentGender));
+        txtViewProfileCourse.setText(orDash(currentCourse));
+        txtViewProfileDepartment.setText(orDash(currentDepartment));
     }
 
+    // =====================================================================
+    //  PRINTING
+    // =====================================================================
+
+    /**
+     * Step 1: build the summary as HTML and load it into an invisible WebView.
+     * We must wait for onPageFinished before printing, otherwise the page is blank.
+     */
+    private void printSummary() {
+        WebView webView = new WebView(this);
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                createPrintJob(view);   // Step 2: the page is ready
+                printWebView = null;    // we no longer need to hold on to it
+            }
+        });
+
+        webView.loadDataWithBaseURL(null, buildSummaryHtml(), "text/HTML", "UTF-8", null);
+
+        // Hold a reference until the page has finished loading
+        printWebView = webView;
+    }
+
+    /** Step 2: hand the rendered page to Android's print system (shows the print dialog). */
+    private void createPrintJob(WebView webView) {
+        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+        String jobName = getString(R.string.print_summary_title);
+
+        PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter(jobName);
+        printManager.print(jobName, adapter, new PrintAttributes.Builder().build());
+    }
+
+    /** Builds the printable page. Every user value is HTML-encoded for safety. */
+    private String buildSummaryHtml() {
+        StringBuilder html = new StringBuilder();
+        html.append("<html><head><meta charset='utf-8'>")
+                .append("<style>")
+                .append("body{font-family:sans-serif;padding:24px;}")
+                .append("h1{font-size:22px;margin:0 0 4px 0;}")
+                .append("p{margin:0;font-size:14px;}")
+                .append("table{width:100%;border-collapse:collapse;margin-top:20px;}")
+                .append("td{padding:10px 4px;border-bottom:1px solid #cccccc;font-size:14px;}")
+                .append("td.value{text-align:right;font-weight:bold;}")
+                .append("</style></head><body>");
+
+        html.append("<h1>").append(TextUtils.htmlEncode(orDash(currentFullName))).append("</h1>");
+        // Same placeholder text as the on-screen status pill
+        html.append("<p>")
+                .append(TextUtils.htmlEncode(getString(R.string.registration_status_placeholder)))
+                .append("</p>");
+
+        html.append("<table>");
+        appendRow(html, R.string.profile_label_email, user.getEmail());
+        appendRow(html, R.string.profile_label_reg_no, currentRegNo);
+        appendRow(html, R.string.profile_label_id_number, currentIdNumber);
+        appendRow(html, R.string.profile_label_gender, currentGender);
+        appendRow(html, R.string.profile_label_course, currentCourse);
+        appendRow(html, R.string.profile_label_department, currentDepartment);
+        html.append("</table></body></html>");
+
+        return html.toString();
+    }
+
+    /** Adds one "label ........ value" table row to the printable page. */
+    private void appendRow(StringBuilder html, int labelRes, String value) {
+        html.append("<tr><td>")
+                .append(TextUtils.htmlEncode(getString(labelRes)))
+                .append("</td><td class='value'>")
+                .append(TextUtils.htmlEncode(orDash(value)))
+                .append("</td></tr>");
+    }
+
+    // =====================================================================
+    //  EDITING (opened by the "Change" button)
+    // =====================================================================
 
     private void showEditDialog() {
         // Inflate = turn dialog_edit_details.xml into real View objects
@@ -171,6 +271,7 @@ public class ProfileActivity extends AppCompatActivity {
         EditText dlgIdNumber = dialogView.findViewById(R.id.dlgIdNumber);
         EditText dlgRegNo = dialogView.findViewById(R.id.dlgRegNo);
         RadioGroup dlgGenderGroup = dialogView.findViewById(R.id.dlgGenderGroup);
+        Spinner dlgCourse = dialogView.findViewById(R.id.dlgCourse);          // NEW
         Spinner dlgDepartment = dialogView.findViewById(R.id.dlgDepartment);
 
         // Pre-fill with what is saved now
@@ -182,6 +283,7 @@ public class ProfileActivity extends AppCompatActivity {
         } else if ("Female".equals(currentGender)) {
             dlgGenderGroup.check(R.id.dlgFemale);
         }
+        dlgCourse.setSelection(indexOfCourse(currentCourse));                 // NEW
         dlgDepartment.setSelection(indexOfDepartment(currentDepartment));
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
@@ -202,7 +304,7 @@ public class ProfileActivity extends AppCompatActivity {
             String regNo = dlgRegNo.getText().toString().trim();
 
             if (!isEditFormValid(dlgFullName, dlgIdNumber, dlgRegNo,
-                    dlgGenderGroup, dlgDepartment, fullName, idNumber, regNo)) {
+                    dlgGenderGroup, dlgCourse, dlgDepartment, fullName, idNumber, regNo)) {
                 return;   // dialog stays open so the user can fix the problem
             }
 
@@ -215,14 +317,16 @@ public class ProfileActivity extends AppCompatActivity {
 
             String gender = dlgGenderGroup.getCheckedRadioButtonId() == R.id.dlgMale
                     ? "Male" : "Female";
+            String course = dlgCourse.getSelectedItem().toString();           // NEW
             String department = dlgDepartment.getSelectedItem().toString();
 
-            saveChanges(dialog, fullName, idNumber, regNo, gender, department);
+            saveChanges(dialog, fullName, idNumber, regNo, gender, course, department);
         });
     }
 
     private boolean isEditFormValid(EditText dlgFullName, EditText dlgIdNumber, EditText dlgRegNo,
-                                    RadioGroup dlgGenderGroup, Spinner dlgDepartment,
+                                    RadioGroup dlgGenderGroup, Spinner dlgCourse,
+                                    Spinner dlgDepartment,
                                     String fullName, String idNumber, String regNo) {
         if (fullName.isEmpty()) {
             dlgFullName.setError("Full name is required");
@@ -248,6 +352,11 @@ public class ProfileActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select a gender", Toast.LENGTH_SHORT).show();
             return false;
         }
+        // NEW: position 0 is the "Select Course" prompt, so it is not a real choice
+        if (dlgCourse.getSelectedItemPosition() == 0) {
+            Toast.makeText(this, "Please select a course", Toast.LENGTH_SHORT).show();
+            return false;
+        }
         if (dlgDepartment.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select a department", Toast.LENGTH_SHORT).show();
             return false;
@@ -256,16 +365,17 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void saveChanges(AlertDialog dialog, String fullName, String idNumber,
-                             String regNo, String gender, String department) {
+                             String regNo, String gender, String course, String department) {
 
-        // The email is NOT here: it belongs to Firebase Auth, not to this profile document
+        // The email is NOT here: it belongs to Firebase Auth, not to this profile document.
+        // "registrationStatus" is not here either: the rules only let the admin side change it.
         Map<String, Object> updates = new HashMap<>();
         updates.put("fullName", fullName);
         updates.put("idNumber", idNumber);
         updates.put("registrationNo", regNo);
         updates.put("gender", gender);
+        updates.put("course", course);              // NEW: allowed by the rules' update list
         updates.put("department", department);
-
 
         updates.put("updatedAt", FieldValue.serverTimestamp());
 
@@ -278,7 +388,7 @@ public class ProfileActivity extends AppCompatActivity {
                                 "Details updated", Toast.LENGTH_SHORT).show())
                 // If the server rejects the write, Firestore also rolls the screen back
                 .addOnFailureListener(this, e -> {
-                    // NEW: the user sees a friendly message, YOU see the real reason in Logcat
+                    // The user sees a friendly message, YOU see the real reason in Logcat
                     Log.e("ProfileActivity", "Save failed", e);
                     Toast.makeText(ProfileActivity.this,
                             "Could not save changes. Your details were not updated.",
@@ -288,6 +398,18 @@ public class ProfileActivity extends AppCompatActivity {
         // Closing right away is fine: the snapshot listener shows the new values instantly
         // from Firestore's local cache, before the server has even replied.
         dialog.dismiss();
+    }
+
+    /** Finds the saved course in the dropdown list; 0 ("Select Course") if not found. */
+    private int indexOfCourse(String course) {
+        // ASSUMPTION: the array is named course_list. Change it if yours differs.
+        String[] courses = getResources().getStringArray(R.array.course_list);
+        for (int i = 0; i < courses.length; i++) {
+            if (courses[i].equals(course)) {
+                return i;
+            }
+        }
+        return 0;
     }
 
     /** Finds the saved department in the dropdown list; 0 ("Select Department") if not found. */
@@ -301,6 +423,9 @@ public class ProfileActivity extends AppCompatActivity {
         return 0;
     }
 
+    // =====================================================================
+    //  SIGN OUT / HELPERS
+    // =====================================================================
 
     private void signOut() {
         // Stop listening FIRST: once signed out, the rules would reject this read
