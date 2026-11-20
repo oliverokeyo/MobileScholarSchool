@@ -15,6 +15,7 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignIn.SignInActivity;
+import com.example.mobilescholarschool.SignUp.SignUpActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -27,6 +28,7 @@ public class OnboardingActivity extends AppCompatActivity {
     private ViewPager2 viewPager;
     private MaterialButton btnNext;
     private MaterialButton btnSkip;
+    private View authButtons;   // the row holding Sign In + Sign Up (last page only)
     private int pageCount;
 
     @Override
@@ -43,6 +45,9 @@ public class OnboardingActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.viewPager);
         btnNext = findViewById(R.id.btnNext);
         btnSkip = findViewById(R.id.btnSkip);
+        authButtons = findViewById(R.id.authButtons);
+        MaterialButton btnSignIn = findViewById(R.id.btnSignIn);
+        MaterialButton btnSignUp = findViewById(R.id.btnSignUp);
         TabLayout dotsIndicator = findViewById(R.id.dotsIndicator);
         View bottomPanel = findViewById(R.id.bottomPanel);
 
@@ -74,15 +79,12 @@ public class OnboardingActivity extends AppCompatActivity {
         updateControls(0);
 
         // 5) Buttons
-        btnNext.setOnClickListener(v -> {
-            int current = viewPager.getCurrentItem();
-            if (current < pageCount - 1) {
-                viewPager.setCurrentItem(current + 1, true);
-            } else {
-                openSignIn();
-            }
-        });
+        // "Next" is only visible before the last page, so it only ever moves forward.
+        btnNext.setOnClickListener(v ->
+                viewPager.setCurrentItem(viewPager.getCurrentItem() + 1, true));
         btnSkip.setOnClickListener(v -> openSignIn());
+        btnSignIn.setOnClickListener(v -> openSignIn());
+        btnSignUp.setOnClickListener(v -> openSignUp());
 
         // 6) Back button goes to the previous page before leaving the app
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -114,13 +116,21 @@ public class OnboardingActivity extends AppCompatActivity {
                 R.drawable.onboarding_hostel,
                 R.string.onboarding_title_hostel,
                 R.string.onboarding_desc_hostel));
+        items.add(new OnboardingItem(
+                R.drawable.onboarding_payments,
+                R.string.onboarding_title_payments,
+                R.string.onboarding_desc_payments));
         return items;
     }
 
-    /** Last page: "Get Started" and no Skip. Other pages: "Next" and Skip. */
+    /**
+     * Pages before the last: "Next" + Skip.
+     * Last page: Sign In + Sign Up buttons, and no Next or Skip.
+     */
     private void updateControls(int position) {
         boolean isLast = position == pageCount - 1;
-        btnNext.setText(isLast ? R.string.onboarding_get_started : R.string.onboarding_next);
+        btnNext.setVisibility(isLast ? View.GONE : View.VISIBLE);
+        authButtons.setVisibility(isLast ? View.VISIBLE : View.GONE);
         btnSkip.setVisibility(isLast ? View.INVISIBLE : View.VISIBLE);
     }
 
@@ -154,6 +164,11 @@ public class OnboardingActivity extends AppCompatActivity {
 
     private void openSignIn() {
         startActivity(new Intent(this, SignInActivity.class));
+        finish(); // remove onboarding from the back stack
+    }
+
+    private void openSignUp() {
+        startActivity(new Intent(this, SignUpActivity.class));
         finish(); // remove onboarding from the back stack
     }
 }
