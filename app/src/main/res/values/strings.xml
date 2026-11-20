@@ -125,11 +125,12 @@
     <!-- Onboarding screen -->
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
-    <string name="onboarding_get_started">Get Started</string>
     <string name="onboarding_title_campus">Your Campus, One Place</string>
     <string name="onboarding_desc_campus">Access essential campus services, stay updated and manage your student life from one convenient place.</string>
     <string name="onboarding_title_library">Your library, anywhere</string>
     <string name="onboarding_desc_library">Discover books, request resources and manage your borrowing activities with ease.</string>
     <string name="onboarding_title_hostel">Find Your Space</string>
     <string name="onboarding_desc_hostel">Explore available accommodation, discover suitable rooms and make your hostel arrangements effortlessly.</string>
+    <string name="onboarding_title_payments">Payments Made Simple</string>
+    <string name="onboarding_desc_payments">Pay your school fees and manage your transactions conveniently and securely, right from your phone.</string>
 </resources>
