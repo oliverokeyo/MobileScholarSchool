@@ -5,6 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_main"
     tools:context=".HostelTab.HostelActivity">
 
     <!-- Scrollable Feature -->
@@ -13,17 +14,17 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNav">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <!-- NestedScrollView allows ONLY ONE child, so everything lives in this container -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/contentHostel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="24dp">
+            android:paddingBottom="@dimen/space_lg">
 
             <!-- ===================== HEADER ===================== -->
 
@@ -31,66 +32,65 @@
                 android:id="@+id/txtViewTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="48dp"
-                android:gravity="center"
+                android:layout_marginStart="@dimen/screen_margin"
                 android:text="@string/app_title"
-                android:textSize="36sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
+                android:textAppearance="@style/TextAppearance.App.Display"
+                app:layout_constraintBottom_toBottomOf="@id/imgNotifications"
                 app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgNotifications" />
+
+            <ImageButton
+                android:id="@+id/imgNotifications"
+                style="@style/Widget.App.IconButton.Light"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="@dimen/space_lg"
+                android:layout_marginEnd="@dimen/screen_margin"
+                android:contentDescription="@string/cd_notifications"
+                android:src="@drawable/ic_notifications"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
                 android:id="@+id/imgHostel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
-                android:src="@drawable/ic_hostel"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_xl"
+                android:background="@drawable/bg_circle_icon_light"
                 android:contentDescription="Student Hostels"
-                app:tint="@color/icon_dark"
+                android:padding="13dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_hostel"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtViewTitle" />
+                app:layout_constraintTop_toBottomOf="@id/imgNotifications"
+                app:tint="@color/icon_dark" />
 
             <TextView
                 android:id="@+id/txtViewWelcome"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginStart="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
                 android:text="Find accommodation that suits you."
-                android:textSize="20sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.App.Headline"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/imgHostel"
-                app:layout_constraintEnd_toStartOf="@id/imgNotifications"
                 app:layout_constraintTop_toTopOf="@id/imgHostel" />
 
+            <!-- Java replaces this text with "Student ID: ..." as soon as the screen opens -->
             <TextView
                 android:id="@+id/txtViewStudentID"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:text="Student ID:(SB06/SR/1234/90)"
-                app:layout_constraintStart_toStartOf="@id/txtViewWelcome"
+                android:textAppearance="@style/TextAppearance.App.Caption"
                 app:layout_constraintEnd_toEndOf="@id/txtViewWelcome"
+                app:layout_constraintStart_toStartOf="@id/txtViewWelcome"
                 app:layout_constraintTop_toBottomOf="@id/txtViewWelcome" />
 
-            <ImageButton
-                android:id="@+id/imgNotifications"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginEnd="24dp"
-                android:padding="0dp"
-                android:scaleType="center"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_notifications"
-                android:contentDescription="Notifications"
-                app:tint="@color/icon_dark"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/imgHostel"
-                app:layout_constraintBottom_toBottomOf="@id/imgHostel" />
-
-            <!-- Sits under the LOWEST of the three header views, so the search box can never overlap them -->
+            <!-- Sits under the LOWEST header view, so the search box can never overlap -->
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/barrierHeader"
                 android:layout_width="wrap_content"
@@ -99,39 +99,22 @@
                 app:constraint_referenced_ids="imgHostel,txtViewStudentID,imgNotifications" />
 
             <!-- ===================== SEARCH ===================== -->
-
-            <ImageView
-                android:id="@+id/imgSearch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:src="@drawable/ic_search"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="@id/txtInputSearchHostel"
-                app:layout_constraintBottom_toBottomOf="@id/txtInputSearchHostel" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/txtInputSearchHostel"
-                style="?attr/textInputOutlinedStyle"
+            <!-- A plain EditText (same id as before); look comes from the theme -->
+            <EditText
+                android:id="@+id/editTxtTxt"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="24dp"
-                android:layout_marginTop="24dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_lg"
+                android:layout_marginEnd="@dimen/screen_margin"
+                android:drawableStart="@drawable/ic_search"
                 android:hint="Search hostel by name or location"
-                app:layout_constraintStart_toEndOf="@id/imgSearch"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLines="1"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/barrierHeader">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editTxtTxt"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:importantForAutofill="no"
-                    android:inputType="text" />
-            </com.google.android.material.textfield.TextInputLayout>
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/barrierHeader" />
 
             <!-- ===================== OVERVIEW ===================== -->
 
@@ -139,38 +122,49 @@
                 android:id="@+id/txtViewHostelOverview"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="24dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_xl"
                 android:text="My Accommodation"
-                android:textSize="18sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.App.Section"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtInputSearchHostel" />
+                app:layout_constraintTop_toBottomOf="@id/editTxtTxt" />
 
-            <TextView
-                android:id="@+id/txtViewStatus"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBookingStatus"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginEnd="24dp"
-                android:layout_marginTop="16dp"
-                android:text="Booking status"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toStartOf="parent"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtViewHostelOverview" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewHostelOverview">
 
-            <!-- Placeholder: set this from code ("No active booking" or the hostel name) -->
-            <TextView
-                android:id="@+id/textView2"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="No active booking"
-                app:layout_constraintStart_toStartOf="@id/txtViewStatus"
-                app:layout_constraintEnd_toEndOf="@id/txtViewStatus"
-                app:layout_constraintTop_toBottomOf="@id/txtViewStatus" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:id="@+id/txtViewStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Booking status"
+                        android:textAppearance="@style/TextAppearance.App.Body" />
+
+                    <!-- Java sets this ("No active booking" or the hostel name) and also reads
+                         the text written here as its "original" wording: keep android:text -->
+                    <TextView
+                        android:id="@+id/textView2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="No active booking"
+                        android:textAppearance="@style/TextAppearance.App.Value"
+                        android:textSize="18sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- ===================== FIND ACCOMMODATION ===================== -->
 
@@ -178,277 +172,324 @@
                 android:id="@+id/txtViewAccomodation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="32dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_xl"
                 android:text="Find Accommodation"
-                android:textSize="18sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.App.Section"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/textView2" />
+                app:layout_constraintTop_toBottomOf="@id/cardBookingStatus" />
 
             <!-- Row 1: Hostel Location -->
-            <ImageView
-                android:id="@+id/imgLocation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
-                android:src="@drawable/ic_location"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtViewAccomodation" />
-
-            <TextView
-                android:id="@+id/txtViewLocation"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardLocation"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                android:text="Hostel Location"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toEndOf="@id/imgLocation"
-                app:layout_constraintEnd_toStartOf="@id/imgLocationArrow"
-                app:layout_constraintTop_toTopOf="@id/imgLocation" />
-
-            <TextView
-                android:id="@+id/txtViewLocationDescription"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Choose campus, nearby or off-campus accommodation."
-                app:layout_constraintStart_toStartOf="@id/txtViewLocation"
-                app:layout_constraintEnd_toEndOf="@id/txtViewLocation"
-                app:layout_constraintTop_toBottomOf="@id/txtViewLocation" />
-
-            <ImageView
-                android:id="@+id/imgLocationArrow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="24dp"
-                android:src="@drawable/ic_forward"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/imgLocation"
-                app:layout_constraintBottom_toBottomOf="@id/imgLocation" />
-
-            <androidx.constraintlayout.widget.Barrier
-                android:id="@+id/barrierLocation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:barrierDirection="bottom"
-                app:constraint_referenced_ids="imgLocation,txtViewLocationDescription,imgLocationArrow" />
-
-            <View
-                android:id="@+id/divider1"
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:background="?android:attr/listDivider"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/barrierLocation" />
+                app:layout_constraintTop_toBottomOf="@id/txtViewAccomodation">
 
-            <!-- Row 2: Sharing Preference -->
-            <ImageView
-                android:id="@+id/imgPreference"
-                android:layout_width="wrap_content"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        android:id="@+id/imgLocation"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:background="@drawable/bg_circle_icon_light"
+                        android:importantForAccessibility="no"
+                        android:padding="10dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_location"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/icon_dark" />
+
+                    <TextView
+                        android:id="@+id/txtViewLocation"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="Hostel Location"
+                        android:textAppearance="@style/TextAppearance.App.CardTitle"
+                        app:layout_constraintBottom_toTopOf="@id/txtViewLocationDescription"
+                        app:layout_constraintEnd_toStartOf="@id/imgLocationArrow"
+                        app:layout_constraintStart_toEndOf="@id/imgLocation"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <!-- Keep android:text: Java reads it as the "Any" wording -->
+                    <TextView
+                        android:id="@+id/txtViewLocationDescription"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:layout_marginBottom="@dimen/space_md"
+                        android:text="Choose campus, nearby or off-campus accommodation."
+                        android:textAppearance="@style/TextAppearance.App.Body"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="@id/txtViewLocation"
+                        app:layout_constraintStart_toStartOf="@id/txtViewLocation"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewLocation" />
+
+                    <ImageView
+                        android:id="@+id/imgLocationArrow"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="@dimen/space_md"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_forward"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/text_muted" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Row 2: Sharing Preference (Java does not bind imgPreference; kept for the look) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPreference"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
-                android:src="@drawable/ic_preference"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/divider1" />
+                app:layout_constraintTop_toBottomOf="@id/cardLocation">
 
-            <TextView
-                android:id="@+id/txtViewPreferance"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                android:text="Sharing Preference"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toEndOf="@id/imgPreference"
-                app:layout_constraintEnd_toStartOf="@id/imgPreferenceArrow"
-                app:layout_constraintTop_toTopOf="@id/imgPreference" />
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
 
-            <TextView
-                android:id="@+id/textViewPreferenceDescription"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Choose private or shared accommodation."
-                app:layout_constraintStart_toStartOf="@id/txtViewPreferance"
-                app:layout_constraintEnd_toEndOf="@id/txtViewPreferance"
-                app:layout_constraintTop_toBottomOf="@id/txtViewPreferance" />
+                    <ImageView
+                        android:id="@+id/imgPreference"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:background="@drawable/bg_circle_icon_light"
+                        android:importantForAccessibility="no"
+                        android:padding="10dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_preference"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/icon_dark" />
 
-            <ImageView
-                android:id="@+id/imgPreferenceArrow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="24dp"
-                android:src="@drawable/ic_forward"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/txtViewPreferance"
-                app:layout_constraintBottom_toBottomOf="@id/textViewPreferenceDescription" />
+                    <TextView
+                        android:id="@+id/txtViewPreferance"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="Sharing Preference"
+                        android:textAppearance="@style/TextAppearance.App.CardTitle"
+                        app:layout_constraintBottom_toTopOf="@id/textViewPreferenceDescription"
+                        app:layout_constraintEnd_toStartOf="@id/imgPreferenceArrow"
+                        app:layout_constraintStart_toEndOf="@id/imgPreference"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
 
-            <androidx.constraintlayout.widget.Barrier
-                android:id="@+id/barrierPreference"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:barrierDirection="bottom"
-                app:constraint_referenced_ids="imgPreference,txtViewPreferance,textViewPreferenceDescription,imgPreferenceArrow" />
+                    <TextView
+                        android:id="@+id/textViewPreferenceDescription"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:layout_marginBottom="@dimen/space_md"
+                        android:text="Choose private or shared accommodation."
+                        android:textAppearance="@style/TextAppearance.App.Body"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="@id/txtViewPreferance"
+                        app:layout_constraintStart_toStartOf="@id/txtViewPreferance"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewPreferance" />
 
-            <View
-                android:id="@+id/divider2"
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:background="?android:attr/listDivider"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/barrierPreference" />
+                    <ImageView
+                        android:id="@+id/imgPreferenceArrow"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="@dimen/space_md"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_forward"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/text_muted" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Row 3: Room Type -->
-            <ImageView
-                android:id="@+id/imgRoom"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
-                android:src="@drawable/ic_hostel"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/divider2" />
-
-            <TextView
-                android:id="@+id/txtViewRoom"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardRoom"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                android:text="Room Type"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toEndOf="@id/imgRoom"
-                app:layout_constraintEnd_toStartOf="@id/imgRoomArrow"
-                app:layout_constraintTop_toTopOf="@id/imgRoom" />
-
-            <TextView
-                android:id="@+id/txtViewRoomDescription"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Bedsitter, single room, one-bedroom or shared room."
-                app:layout_constraintStart_toStartOf="@id/txtViewRoom"
-                app:layout_constraintEnd_toEndOf="@id/txtViewRoom"
-                app:layout_constraintTop_toBottomOf="@id/txtViewRoom" />
-
-            <ImageView
-                android:id="@+id/imgRoomArrow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="24dp"
-                android:src="@drawable/ic_forward"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/imgRoom"
-                app:layout_constraintBottom_toBottomOf="@id/imgRoom" />
-
-            <androidx.constraintlayout.widget.Barrier
-                android:id="@+id/barrierRoom"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:barrierDirection="bottom"
-                app:constraint_referenced_ids="imgRoom,txtViewRoomDescription,imgRoomArrow" />
-
-            <View
-                android:id="@+id/divider3"
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:background="?android:attr/listDivider"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/barrierRoom" />
+                app:layout_constraintTop_toBottomOf="@id/cardPreference">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        android:id="@+id/imgRoom"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:background="@drawable/bg_circle_icon_light"
+                        android:importantForAccessibility="no"
+                        android:padding="10dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_hostel"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/icon_dark" />
+
+                    <TextView
+                        android:id="@+id/txtViewRoom"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="Room Type"
+                        android:textAppearance="@style/TextAppearance.App.CardTitle"
+                        app:layout_constraintBottom_toTopOf="@id/txtViewRoomDescription"
+                        app:layout_constraintEnd_toStartOf="@id/imgRoomArrow"
+                        app:layout_constraintStart_toEndOf="@id/imgRoom"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/txtViewRoomDescription"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:layout_marginBottom="@dimen/space_md"
+                        android:text="Bedsitter, single room, one-bedroom or shared room."
+                        android:textAppearance="@style/TextAppearance.App.Body"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="@id/txtViewRoom"
+                        app:layout_constraintStart_toStartOf="@id/txtViewRoom"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewRoom" />
+
+                    <ImageView
+                        android:id="@+id/imgRoomArrow"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="@dimen/space_md"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_forward"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/text_muted" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Row 4: Budget -->
-            <ImageView
-                android:id="@+id/imgBudget"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
-                android:src="@drawable/ic_payments"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/divider3" />
-
-            <TextView
-                android:id="@+id/txtViewBudget"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBudget"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                android:text="Budget"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toEndOf="@id/imgBudget"
-                app:layout_constraintEnd_toStartOf="@id/imgBudgetArrow"
-                app:layout_constraintTop_toTopOf="@id/imgBudget" />
-
-            <TextView
-                android:id="@+id/textViewBudgetDescription"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Compare rent and available facilities."
-                app:layout_constraintStart_toStartOf="@id/txtViewBudget"
-                app:layout_constraintEnd_toEndOf="@id/txtViewBudget"
-                app:layout_constraintTop_toBottomOf="@id/txtViewBudget" />
-
-            <ImageView
-                android:id="@+id/imgBudgetArrow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="24dp"
-                android:src="@drawable/ic_forward"
-                android:importantForAccessibility="no"
-                app:tint="@color/icon_dark"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/imgBudget"
-                app:layout_constraintBottom_toBottomOf="@id/imgBudget" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/cardRoom">
 
-            <!-- Same style as your other barriers: sits under the lowest part of the Budget row -->
-            <androidx.constraintlayout.widget.Barrier
-                android:id="@+id/barrierBudget"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:barrierDirection="bottom"
-                app:constraint_referenced_ids="imgBudget,textViewBudgetDescription,imgBudgetArrow" />
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
 
-            <!-- Search: lists the hostels that fit the four choices above (Hostel Search Result) -->
+                    <ImageView
+                        android:id="@+id/imgBudget"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:background="@drawable/bg_circle_icon_light"
+                        android:importantForAccessibility="no"
+                        android:padding="10dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_payments"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/icon_dark" />
+
+                    <TextView
+                        android:id="@+id/txtViewBudget"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="Budget"
+                        android:textAppearance="@style/TextAppearance.App.CardTitle"
+                        app:layout_constraintBottom_toTopOf="@id/textViewBudgetDescription"
+                        app:layout_constraintEnd_toStartOf="@id/imgBudgetArrow"
+                        app:layout_constraintStart_toEndOf="@id/imgBudget"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/textViewBudgetDescription"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:layout_marginBottom="@dimen/space_md"
+                        android:text="Compare rent and available facilities."
+                        android:textAppearance="@style/TextAppearance.App.Body"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="@id/txtViewBudget"
+                        app:layout_constraintStart_toStartOf="@id/txtViewBudget"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewBudget" />
+
+                    <ImageView
+                        android:id="@+id/imgBudgetArrow"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="@dimen/space_md"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_forward"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/text_muted" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Search: lists the hostels that fit the four choices above -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSearchHostels"
+                style="@style/Widget.App.Button.Primary"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginEnd="24dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_lg"
+                android:layout_marginEnd="@dimen/screen_margin"
                 android:text="Search hostels"
-                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/barrierBudget" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/cardBudget" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
@@ -458,8 +499,8 @@
         layout="@layout/layout_bottom_nav"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

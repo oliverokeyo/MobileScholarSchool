@@ -5,57 +5,61 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_main"
     tools:context=".ProfileTab.ProfileActivity">
 
-    <!-- ===================== PAGE TITLE  ===================== -->
-    <TextView
-        android:id="@+id/txtViewTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
-        android:gravity="center"
-        android:text="@string/app_title"
-        android:textSize="36sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/txtViewStudentProfile"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/title_student_profile"
-        android:textSize="18sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtViewTitle" />
-
-    <!-- The WHOLE page content scrolls: header, details card AND the buttons.
-         It fills the gap between the subtitle above and the bottom nav below
-         (0dp height + two vertical constraints). A ScrollView may hold only
-         ONE direct child, hence the single vertical LinearLayout inside. -->
+    <!-- The WHOLE page scrolls, including the two titles at the top: header, details card
+         AND the buttons. It now starts at the top of the screen and ends at the bottom nav
+         (0dp height + two vertical constraints). A ScrollView may hold only ONE direct
+         child, hence the single vertical LinearLayout inside. -->
     <ScrollView
         android:id="@+id/scrollContent"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
+        android:clipToPadding="false"
+        android:scrollbars="none"
         app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtViewStudentProfile">
+        app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingStart="@dimen/screen_margin"
+            android:paddingTop="@dimen/space_lg"
+            android:paddingEnd="@dimen/screen_margin"
+            android:paddingBottom="@dimen/space_lg">
+
+            <!-- ===================== PAGE TITLES (centred, scroll with the page) =====================
+                 layout_gravity="center_horizontal" centres a wrap_content view inside a
+                 vertical LinearLayout. -->
+            <TextView
+                android:id="@+id/txtViewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:gravity="center"
+                android:text="@string/app_title"
+                android:textAppearance="@style/TextAppearance.App.Display" />
+
+            <!-- Centred too, and still directly under the title -->
+            <TextView
+                android:id="@+id/txtViewStudentProfile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="@dimen/space_sm"
+                android:gravity="center"
+                android:text="@string/title_student_profile"
+                android:textAppearance="@style/TextAppearance.App.Headline" />
 
             <!-- ===================== HEADER: avatar + name + status ===================== -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_lg"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -64,6 +68,7 @@
                     android:id="@+id/cardAvatar"
                     android:layout_width="64dp"
                     android:layout_height="64dp"
+                    app:cardBackgroundColor="@color/surface_primary"
                     app:cardCornerRadius="32dp"
                     app:cardElevation="0dp">
 
@@ -72,14 +77,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:contentDescription="@string/cd_profile_photo"
-                        android:padding="12dp"
-                        android:src="@drawable/ic_student" />
+                        android:padding="16dp"
+                        android:src="@drawable/ic_student"
+                        app:tint="@color/icon_dark" />
                 </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/space_md"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
@@ -88,32 +94,31 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/loading_profile"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.App.Value"
                         tools:text="Felix Lorenzo" />
 
-                    <!-- Status "pill": a small rounded card wrapping a TextView.
-                         The text is fixed (a placeholder), so it lives here in the
-                         layout and Java never touches it. -->
+                    <!-- Status pill. The text is fixed (a placeholder), so it lives
+                         here in the layout and Java never touches it. -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        app:cardCornerRadius="12dp"
+                        android:layout_marginTop="@dimen/space_sm"
+                        app:cardBackgroundColor="@color/surface_primary"
+                        app:cardCornerRadius="100dp"
                         app:cardElevation="0dp">
 
                         <TextView
                             android:id="@+id/txtViewRegistrationStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:paddingStart="12dp"
-                            android:paddingTop="4dp"
-                            android:paddingEnd="12dp"
-                            android:paddingBottom="4dp"
+                            android:paddingStart="@dimen/space_md"
+                            android:paddingTop="6dp"
+                            android:paddingEnd="@dimen/space_md"
+                            android:paddingBottom="6dp"
                             android:text="@string/registration_status_placeholder"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
+                            android:textAppearance="@style/TextAppearance.App.Label"
+                            android:textSize="12sp" />
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
             </LinearLayout>
@@ -122,44 +127,37 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp">
+                android:layout_marginTop="@dimen/space_lg">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
-                    <!-- Card header: icon, title, Change button -->
+                    <!-- Card header: title + Change button -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@string/cd_profile_photo"
-                            android:src="@drawable/ic_student" />
-
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
                             android:layout_weight="1"
                             android:text="@string/profile_your_details"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textAppearance="@style/TextAppearance.App.CardTitle" />
 
+                        <!-- Secondary pill, made a little shorter than the default 56dp -->
                         <Button
                             android:id="@+id/btnChange"
-                            style="@style/Widget.Material3.Button.TextButton"
+                            style="@style/Widget.App.Button.Secondary"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:minHeight="40dp"
+                            android:paddingStart="@dimen/space_md"
+                            android:paddingEnd="@dimen/space_md"
                             android:text="@string/btn_change" />
                     </LinearLayout>
 
@@ -167,22 +165,24 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="@dimen/space_md"
                         android:orientation="horizontal">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/profile_label_email" />
+                            android:text="@string/profile_label_email"
+                            android:textAppearance="@style/TextAppearance.App.Body" />
 
                         <TextView
                             android:id="@+id/txtViewProfileEmail"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_md"
                             android:layout_weight="1"
                             android:gravity="end"
-                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.App.CardTitle"
+                            android:textSize="14sp"
                             tools:text="student@example.com" />
                     </LinearLayout>
 
@@ -190,22 +190,24 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="@dimen/space_md"
                         android:orientation="horizontal">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/profile_label_reg_no" />
+                            android:text="@string/profile_label_reg_no"
+                            android:textAppearance="@style/TextAppearance.App.Body" />
 
                         <TextView
                             android:id="@+id/txtViewProfileRegNo"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_md"
                             android:layout_weight="1"
                             android:gravity="end"
-                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.App.CardTitle"
+                            android:textSize="14sp"
                             tools:text="SB06/SR/009/22" />
                     </LinearLayout>
 
@@ -213,22 +215,24 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="@dimen/space_md"
                         android:orientation="horizontal">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/profile_label_id_number" />
+                            android:text="@string/profile_label_id_number"
+                            android:textAppearance="@style/TextAppearance.App.Body" />
 
                         <TextView
                             android:id="@+id/txtViewProfileIdNumber"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_md"
                             android:layout_weight="1"
                             android:gravity="end"
-                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.App.CardTitle"
+                            android:textSize="14sp"
                             tools:text="1234567" />
                     </LinearLayout>
 
@@ -236,22 +240,24 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="@dimen/space_md"
                         android:orientation="horizontal">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/profile_label_gender" />
+                            android:text="@string/profile_label_gender"
+                            android:textAppearance="@style/TextAppearance.App.Body" />
 
                         <TextView
                             android:id="@+id/txtViewProfileGender"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_md"
                             android:layout_weight="1"
                             android:gravity="end"
-                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.App.CardTitle"
+                            android:textSize="14sp"
                             tools:text="Male" />
                     </LinearLayout>
 
@@ -259,22 +265,24 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="@dimen/space_md"
                         android:orientation="horizontal">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/profile_label_course" />
+                            android:text="@string/profile_label_course"
+                            android:textAppearance="@style/TextAppearance.App.Body" />
 
                         <TextView
                             android:id="@+id/txtViewProfileCourse"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_md"
                             android:layout_weight="1"
                             android:gravity="end"
-                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.App.CardTitle"
+                            android:textSize="14sp"
                             tools:text="BSc Computer Science" />
                     </LinearLayout>
 
@@ -282,22 +290,24 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="@dimen/space_md"
                         android:orientation="horizontal">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/profile_label_department" />
+                            android:text="@string/profile_label_department"
+                            android:textAppearance="@style/TextAppearance.App.Body" />
 
                         <TextView
                             android:id="@+id/txtViewProfileDepartment"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_md"
                             android:layout_weight="1"
                             android:gravity="end"
-                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.App.CardTitle"
+                            android:textSize="14sp"
                             tools:text="Computer and Information Science" />
                     </LinearLayout>
 
@@ -305,23 +315,25 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- ===================== PRINT BUTTON (icon + text) =====================
-                 INSIDE the scrolling column, so it scrolls with the page. -->
+                 Primary action: near-black pill. INSIDE the scrolling column. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPrintSummary"
+                style="@style/Widget.App.Button.Primary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/space_lg"
                 android:text="@string/btn_print_summary"
                 app:icon="@drawable/ic_print"
                 app:iconGravity="textStart"
-                app:iconPadding="8dp" />
+                app:iconPadding="@dimen/space_sm" />
 
+            <!-- Secondary action: soft grey pill -->
             <Button
                 android:id="@+id/btnSignOut"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Secondary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_md"
                 android:text="@string/btn_sign_out" />
 
         </LinearLayout>
@@ -332,8 +344,8 @@
         layout="@layout/layout_bottom_nav"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
