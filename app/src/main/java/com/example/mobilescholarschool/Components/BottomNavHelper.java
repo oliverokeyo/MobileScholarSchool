@@ -371,10 +371,13 @@ public final class BottomNavHelper {
             icon.setImageDrawable(item.getIcon());
             icon.setLayoutParams(new LinearLayout.LayoutParams(dp(24), dp(24)));
 
+            // CHANGED: the label uses the phone's own system font, in its medium weight, at 13sp.
+            // Typeface.create("sans-serif-medium", ...) asks the system for that weight by name,
+            // so no font file is needed and it can't come back null.
             TextView label = new TextView(context);
             label.setText(item.getTitle());
-            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            label.setTypeface(label.getTypeface(), Typeface.BOLD);
+            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            label.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             label.setMaxLines(1);
             label.setEllipsize(TextUtils.TruncateAt.END);   // long titles get "..." instead of overflowing
             label.setPadding(dp(8), 0, 0, 0);
@@ -437,7 +440,7 @@ public final class BottomNavHelper {
             }
         }
 
-        /** The soft, fully rounded highlight behind the active tab. */
+        /** The fully rounded highlight behind the active tab (near-black in the new design). */
         private GradientDrawable createHighlightBackground() {
             GradientDrawable bg = new GradientDrawable();
             bg.setShape(GradientDrawable.RECTANGLE);

@@ -5,15 +5,20 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_main"
     tools:context=".HomeTab.HomeActivity">
 
-    <!-- The scrollable area: fills the whole screen; the bottom nav is drawn on top of it -->
+    <!-- The scrollable area: fills the whole screen; the bottom nav is drawn on top of it.
+         overScrollMode="always": the page gives a stretch/bounce when dragged even if all
+         the content already fits, so it always feels scrollable. It scrolls for real as
+         soon as the content is taller than the screen (cards expanded, landscape, small phones). -->
     <ScrollView
         android:id="@+id/scrollHome"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:fillViewport="true"
+        android:overScrollMode="always"
         android:paddingBottom="96dp"
         android:scrollbars="none"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -26,96 +31,97 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
+            <!-- Top row: bold brand on the left, notification button on the right -->
             <TextView
                 android:id="@+id/txtViewTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:layout_marginTop="48dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_lg"
                 android:text="@string/app_title"
-                android:textSize="36sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
+                android:textAppearance="@style/TextAppearance.App.Display"
+                app:layout_constraintBottom_toBottomOf="@id/imgNotifications"
                 app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgNotifications" />
+
+            <ImageButton
+                android:id="@+id/imgNotifications"
+                style="@style/Widget.App.IconButton.Light"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="@dimen/space_lg"
+                android:layout_marginEnd="@dimen/screen_margin"
+                android:contentDescription="@string/cd_notifications"
+                android:src="@drawable/ic_notifications"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <!-- Profile row: avatar circle + greeting + student ID -->
             <ImageView
                 android:id="@+id/imgStudent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_xl"
+                android:background="@drawable/bg_circle_icon_light"
+                android:contentDescription="@string/cd_profile_photo"
+                android:padding="13dp"
+                android:scaleType="centerInside"
                 android:src="@drawable/ic_student"
-                android:contentDescription="Student profile"
-                app:tint="@color/icon_dark"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtViewTitle" />
+                app:layout_constraintTop_toBottomOf="@id/imgNotifications"
+                app:tint="@color/icon_dark" />
 
+            <!-- txtViewWelcome + txtViewStudentID form a packed vertical chain,
+                 so the pair stays centred beside the avatar -->
             <TextView
                 android:id="@+id/txtViewWelcome"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                tools:text="Good Morning! John"
+                android:layout_marginStart="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
+                android:textAppearance="@style/TextAppearance.App.Greeting"
+                app:layout_constraintBottom_toTopOf="@id/txtViewStudentID"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/imgStudent"
-                app:layout_constraintEnd_toStartOf="@id/imgNotifications"
-                app:layout_constraintTop_toTopOf="@id/imgStudent" />
+                app:layout_constraintTop_toTopOf="@id/imgStudent"
+                app:layout_constraintVertical_chainStyle="packed"
+                tools:text="Good Morning! John" />
 
             <TextView
                 android:id="@+id/txtViewStudentID"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Student ID:(SB06/SR/1234/90) "
-                app:layout_constraintStart_toStartOf="@id/txtViewWelcome"
-                app:layout_constraintTop_toBottomOf="@id/txtViewWelcome" />
-
-            <ImageButton
-                android:id="@+id/imgNotifications"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginEnd="24dp"
-                android:padding="0dp"
-                android:scaleType="center"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_notifications"
-                android:contentDescription="Notifications"
-                app:tint="@color/icon_dark"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/imgStudent"
-                app:layout_constraintBottom_toBottomOf="@id/imgStudent" />
-
-            <View
-                android:id="@+id/divider"
                 android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:background="?android:attr/listDivider"
-                app:layout_constraintStart_toStartOf="parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs"
+                android:layout_marginEnd="@dimen/screen_margin"
+                android:textAppearance="@style/TextAppearance.App.Caption"
+                app:layout_constraintBottom_toBottomOf="@id/imgStudent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/imgStudent" />
+                app:layout_constraintStart_toStartOf="@id/txtViewWelcome"
+                app:layout_constraintTop_toBottomOf="@id/txtViewWelcome"
+                tools:text="Student ID: SB06/SR/1234/90" />
 
+            <!-- Section heading -->
             <TextView
                 android:id="@+id/txtViewStudentOverview"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_xl"
                 android:text="Student Overview"
-                android:textSize="20sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/divider" />
+                app:layout_constraintTop_toBottomOf="@id/imgStudent" />
 
-            <!-- Two rows of two cards. Each card is a MaterialCardView. -->
+            <!-- Two rows of two cards. Card look (24dp corners, soft shadow) comes from the theme.
+                 16dp container margin + 8dp card margin = 24dp, the screen margin. -->
             <LinearLayout
                 android:id="@+id/cardsContainer"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="16dp"
+                android:layout_marginStart="@dimen/space_md"
+                android:layout_marginTop="@dimen/space_sm"
+                android:layout_marginEnd="@dimen/space_md"
                 android:orientation="vertical"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -127,130 +133,113 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
+                    <!-- Fees -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardFees"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_margin="@dimen/space_sm"
                         android:layout_weight="1"
-                        android:layout_margin="8dp"
                         android:clickable="true"
-                        android:focusable="true"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="4dp">
+                        android:focusable="true">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="20dp">
 
-                            <LinearLayout
+                            <ImageView
+                                android:id="@+id/imgPayments"
+                                android:layout_width="44dp"
+                                android:layout_height="44dp"
+                                android:background="@drawable/bg_circle_icon_light"
+                                android:importantForAccessibility="no"
+                                android:padding="10dp"
+                                android:scaleType="centerInside"
+                                android:src="@drawable/ic_payments"
+                                app:tint="@color/icon_dark" />
+
+                            <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
+                                android:layout_marginTop="@dimen/space_md"
+                                android:text="Outstanding Fee"
+                                android:textAppearance="@style/TextAppearance.App.Body" />
 
-                                <ImageView
-                                    android:id="@+id/imgPayments"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:importantForAccessibility="no"
-                                    android:src="@drawable/ic_payments"
-                                    app:tint="@color/icon_dark" />
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="12dp"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:text="Outstanding Fee"
-                                        android:textStyle="bold" />
-
-                                    <TextView
-                                        android:id="@+id/txtViewBalance"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="4dp"
-                                        android:text="Ksh. [Balance]" />
-                                </LinearLayout>
-                            </LinearLayout>
+                            <TextView
+                                android:id="@+id/txtViewBalance"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/space_xs"
+                                android:textAppearance="@style/TextAppearance.App.Value"
+                                android:textSize="18sp"
+                                tools:text="Ksh. 12,000" />
 
                             <!-- Hidden until the card is tapped -->
                             <TextView
                                 android:id="@+id/txtViewFeeDetails"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:text="Total billed: Ksh. [Total]&#10;Paid so far: Ksh. [Paid]&#10;Due date: [Date]&#10;Tap Finance to pay via M-Pesa."
-                                android:visibility="gone" />
+                                android:layout_marginTop="@dimen/space_md"
+                                android:textAppearance="@style/TextAppearance.App.Body"
+                                android:visibility="gone"
+                                tools:text="Total billed: Ksh. 40,000\nPaid so far: Ksh. 28,000\nDue date: 30 Nov 2026" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Library -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardLibrary"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_margin="@dimen/space_sm"
                         android:layout_weight="1"
-                        android:layout_margin="8dp"
                         android:clickable="true"
-                        android:focusable="true"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="4dp">
+                        android:focusable="true">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="20dp">
 
-                            <LinearLayout
+                            <ImageView
+                                android:id="@+id/imgLibrary"
+                                android:layout_width="44dp"
+                                android:layout_height="44dp"
+                                android:background="@drawable/bg_circle_icon_light"
+                                android:importantForAccessibility="no"
+                                android:padding="10dp"
+                                android:scaleType="centerInside"
+                                android:src="@drawable/ic_library"
+                                app:tint="@color/icon_dark" />
+
+                            <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
+                                android:layout_marginTop="@dimen/space_md"
+                                android:text="Library Updates"
+                                android:textAppearance="@style/TextAppearance.App.Body" />
 
-                                <ImageView
-                                    android:id="@+id/imgLibrary"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:importantForAccessibility="no"
-                                    android:src="@drawable/ic_library"
-                                    app:tint="@color/icon_dark" />
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="12dp"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:text="Library Updates"
-                                        android:textStyle="bold" />
-
-                                    <TextView
-                                        android:id="@+id/txtViewLibraryUpdates"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="4dp"
-                                        android:text="(Updates)" />
-                                </LinearLayout>
-                            </LinearLayout>
+                            <TextView
+                                android:id="@+id/txtViewLibraryUpdates"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/space_xs"
+                                android:textAppearance="@style/TextAppearance.App.Value"
+                                android:textSize="18sp"
+                                tools:text="2 borrowed" />
 
                             <!-- Hidden until the card is tapped -->
                             <TextView
                                 android:id="@+id/txtViewLibraryDetails"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:text="Books borrowed: [N]&#10;Due soon: [Title] on [Date]&#10;Fines: Ksh. [Amount]"
-                                android:visibility="gone" />
+                                android:layout_marginTop="@dimen/space_md"
+                                android:textAppearance="@style/TextAppearance.App.Body"
+                                android:visibility="gone"
+                                tools:text="Books borrowed: 2\nDue soon: Physics on 30 Nov 2026\nFines: Ksh. 0" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
@@ -261,130 +250,113 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
+                    <!-- Hostel -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardHostel"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_margin="@dimen/space_sm"
                         android:layout_weight="1"
-                        android:layout_margin="8dp"
                         android:clickable="true"
-                        android:focusable="true"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="4dp">
+                        android:focusable="true">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="20dp">
 
-                            <LinearLayout
+                            <ImageView
+                                android:id="@+id/imgHostel"
+                                android:layout_width="44dp"
+                                android:layout_height="44dp"
+                                android:background="@drawable/bg_circle_icon_light"
+                                android:importantForAccessibility="no"
+                                android:padding="10dp"
+                                android:scaleType="centerInside"
+                                android:src="@drawable/ic_hostel"
+                                app:tint="@color/icon_dark" />
+
+                            <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
+                                android:layout_marginTop="@dimen/space_md"
+                                android:text="Hostel Updates"
+                                android:textAppearance="@style/TextAppearance.App.Body" />
 
-                                <ImageView
-                                    android:id="@+id/imgHostel"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:importantForAccessibility="no"
-                                    android:src="@drawable/ic_hostel"
-                                    app:tint="@color/icon_dark" />
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="12dp"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:text="Hostel Updates"
-                                        android:textStyle="bold" />
-
-                                    <TextView
-                                        android:id="@+id/txtViewBookedStatus"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="4dp"
-                                        android:text="(Booked/Unbooked)" />
-                                </LinearLayout>
-                            </LinearLayout>
+                            <TextView
+                                android:id="@+id/txtViewBookedStatus"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/space_xs"
+                                android:textAppearance="@style/TextAppearance.App.Value"
+                                android:textSize="18sp"
+                                tools:text="Booked" />
 
                             <!-- Hidden until the card is tapped -->
                             <TextView
                                 android:id="@+id/txtViewHostelDetails"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:text="Hostel: [Name]&#10;Room: [Number]&#10;Check-in: [Date]&#10;Warden: [Name]"
-                                android:visibility="gone" />
+                                android:layout_marginTop="@dimen/space_md"
+                                android:textAppearance="@style/TextAppearance.App.Body"
+                                android:visibility="gone"
+                                tools:text="Hostel: Block A\nRoom: 12\nCheck-in: 05 Jan 2027\nWarden: Ms. Achieng" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Units -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardUnits"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_margin="@dimen/space_sm"
                         android:layout_weight="1"
-                        android:layout_margin="8dp"
                         android:clickable="true"
-                        android:focusable="true"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="4dp">
+                        android:focusable="true">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="20dp">
 
-                            <LinearLayout
+                            <ImageView
+                                android:id="@+id/imgUnits"
+                                android:layout_width="44dp"
+                                android:layout_height="44dp"
+                                android:background="@drawable/bg_circle_icon_light"
+                                android:importantForAccessibility="no"
+                                android:padding="10dp"
+                                android:scaleType="centerInside"
+                                android:src="@drawable/ic_units"
+                                app:tint="@color/icon_dark" />
+
+                            <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
+                                android:layout_marginTop="@dimen/space_md"
+                                android:text="Unit Registration"
+                                android:textAppearance="@style/TextAppearance.App.Body" />
 
-                                <ImageView
-                                    android:id="@+id/imgUnits"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:importantForAccessibility="no"
-                                    android:src="@drawable/ic_units"
-                                    app:tint="@color/icon_dark" />
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="12dp"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:text="Unit Registration"
-                                        android:textStyle="bold" />
-
-                                    <TextView
-                                        android:id="@+id/textViewUnitStatus"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="4dp"
-                                        android:text="(Registered/Pending/Unregistered)" />
-                                </LinearLayout>
-                            </LinearLayout>
+                            <TextView
+                                android:id="@+id/textViewUnitStatus"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/space_xs"
+                                android:textAppearance="@style/TextAppearance.App.Value"
+                                android:textSize="18sp"
+                                tools:text="Registered" />
 
                             <!-- Hidden until the card is tapped -->
                             <TextView
                                 android:id="@+id/txtViewUnitDetails"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:text="Semester: [Y1 S1]&#10;Units registered: [N]&#10;Deadline: [Date]&#10;Pending approval: [Unit codes]"
-                                android:visibility="gone" />
+                                android:layout_marginTop="@dimen/space_md"
+                                android:textAppearance="@style/TextAppearance.App.Body"
+                                android:visibility="gone"
+                                tools:text="Semester: Y1 S1\nUnits registered: 6\nDeadline: 15 Dec 2026\nPending approval: None" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
@@ -398,7 +370,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

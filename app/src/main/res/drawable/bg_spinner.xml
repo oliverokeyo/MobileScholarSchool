@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A layer-list stacks drawables: the input shape on the bottom, the chevron on top -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/bg_input" />
+    <item
+        android:width="24dp"
+        android:height="24dp"
+        android:end="16dp"
+        android:gravity="center_vertical|end"
+        android:drawable="@drawable/ic_chevron_down" />
+</layer-list>

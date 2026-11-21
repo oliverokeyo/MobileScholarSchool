@@ -1,13 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <!-- ========== Design palette ========== -->
+    <!-- Backgrounds and surfaces -->
+    <color name="bg_main">#F9F9F9</color>
+    <color name="surface_primary">#F1F0F0</color>
+    <color name="surface_secondary">#E9E7E7</color>
+    <color name="card_white">#FFFFFF</color>
+
+    <!-- Borders and dividers -->
+    <color name="divider">#DEDCDC</color>
+    <color name="grey_muted">#D2D0CE</color>
+
+    <!-- Text -->
+    <color name="text_primary">#0E0C0A</color>
+    <color name="text_secondary">#70645A</color>
+    <color name="text_muted">#90877E</color>
+
+    <!-- Accents: use sparingly (ratings, notifications, highlights) -->
+    <color name="accent_orange">#F26B2C</color>
+    <color name="accent_yellow">#F7C844</color>
+    <color name="accent_beige">#C2BCB5</color>
+
+    <!-- Shadow: 6% black, the Android equivalent of rgba(0,0,0,0.06) -->
+    <color name="shadow_soft">#0F000000</color>
+
+    <!-- ========== Legacy names (kept so existing code keeps working) ========== -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="icon_dark">#FF000000</color>
-    <color name="icon_dark_muted">#FF000000</color>
+    <color name="icon_dark">#FF0E0C0A</color>
+    <color name="icon_dark_muted">#FF90877E</color>
 
     <!-- Floating pill bottom navigation -->
     <color name="floating_nav_pill_bg">#FFFFFFFF</color>
-    <color name="floating_nav_active_bg">#FFE8EAF6</color>
-    <color name="floating_nav_active_content">#FF3949AB</color>
-    <color name="floating_nav_inactive">#FF757575</color>
+    <color name="floating_nav_active_bg">#FF0E0C0A</color>
+    <color name="floating_nav_active_content">#FFFFFFFF</color>
+    <color name="floating_nav_inactive">#FF90877E</color>
 </resources>
