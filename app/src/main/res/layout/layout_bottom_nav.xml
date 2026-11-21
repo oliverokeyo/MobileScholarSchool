@@ -18,7 +18,8 @@
     android:paddingEnd="8dp"
     android:paddingBottom="12dp">
 
-    <!-- The pill: fixed width (set by BottomNavHelper), 60dp tall, centered, fully rounded. -->
+    <!-- The pill: fixed width (set by BottomNavHelper), 60dp tall, centered, fully rounded.
+         A 1dp light-grey hairline keeps it distinct from the off-white page. -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/pillCard"
         android:layout_width="match_parent"
@@ -26,8 +27,9 @@
         android:layout_gravity="center_horizontal"
         app:cardBackgroundColor="@color/floating_nav_pill_bg"
         app:cardCornerRadius="30dp"
-        app:cardElevation="4dp"
-        app:strokeWidth="0dp">
+        app:cardElevation="8dp"
+        app:strokeColor="@color/divider"
+        app:strokeWidth="1dp">
 
         <!-- BottomNavHelper fills this row with one tab per menu item. -->
         <LinearLayout
