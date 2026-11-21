@@ -26,9 +26,10 @@ import java.util.List;
 public class OnboardingActivity extends AppCompatActivity {
 
     private ViewPager2 viewPager;
-    private MaterialButton btnNext;
+    // CHANGED: btnNext is gone. Pages are changed by swiping, and the dots show
+    // where you are.
     private MaterialButton btnSkip;
-    private View authButtons;   // the row holding Sign In + Sign Up (last page only)
+    private View authButtons; // the row holding Sign In + Sign Up (last page only)
     private int pageCount;
 
     @Override
@@ -43,7 +44,6 @@ public class OnboardingActivity extends AppCompatActivity {
                 .setAppearanceLightStatusBars(false);
 
         viewPager = findViewById(R.id.viewPager);
-        btnNext = findViewById(R.id.btnNext);
         btnSkip = findViewById(R.id.btnSkip);
         authButtons = findViewById(R.id.authButtons);
         MaterialButton btnSignIn = findViewById(R.id.btnSignIn);
@@ -60,12 +60,14 @@ public class OnboardingActivity extends AppCompatActivity {
         // 2) Adapter
         viewPager.setAdapter(new OnboardingAdapter(items));
 
-        // 3) Dots: TabLayoutMediator links one tab per page and keeps them in sync.
-        new TabLayoutMediator(dotsIndicator, viewPager, (tab, position) -> { }).attach();
+        // 3) Page indicators: TabLayoutMediator links one tab per page and keeps them
+        // in sync.
+        new TabLayoutMediator(dotsIndicator, viewPager, (tab, position) -> {
+        }).attach();
         for (int i = 0; i < dotsIndicator.getTabCount(); i++) {
             TabLayout.Tab tab = dotsIndicator.getTabAt(i);
             if (tab != null) {
-                tab.view.setClickable(false); // dots are display-only
+                tab.view.setClickable(false); // indicators are display-only
             }
         }
 
@@ -79,9 +81,6 @@ public class OnboardingActivity extends AppCompatActivity {
         updateControls(0);
 
         // 5) Buttons
-        // "Next" is only visible before the last page, so it only ever moves forward.
-        btnNext.setOnClickListener(v ->
-                viewPager.setCurrentItem(viewPager.getCurrentItem() + 1, true));
         btnSkip.setOnClickListener(v -> openSignIn());
         btnSignIn.setOnClickListener(v -> openSignIn());
         btnSignUp.setOnClickListener(v -> openSignUp());
@@ -124,13 +123,17 @@ public class OnboardingActivity extends AppCompatActivity {
     }
 
     /**
-     * Pages before the last: "Next" + Skip.
-     * Last page: Sign In + Sign Up buttons, and no Next or Skip.
+     * CHANGED. Pages before the last: Skip only (swipe to continue).
+     * Last page: Sign In + Sign Up buttons appear, and Skip is hidden.
+     *
+     * The buttons use INVISIBLE rather than GONE on purpose: an invisible view
+     * still takes
+     * up its space, so the page indicators stay put instead of jumping on the last
+     * page.
      */
     private void updateControls(int position) {
         boolean isLast = position == pageCount - 1;
-        btnNext.setVisibility(isLast ? View.GONE : View.VISIBLE);
-        authButtons.setVisibility(isLast ? View.VISIBLE : View.GONE);
+        authButtons.setVisibility(isLast ? View.VISIBLE : View.INVISIBLE);
         btnSkip.setVisibility(isLast ? View.INVISIBLE : View.VISIBLE);
     }
 
@@ -148,8 +151,7 @@ public class OnboardingActivity extends AppCompatActivity {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
 
-            ViewGroup.MarginLayoutParams skipParams =
-                    (ViewGroup.MarginLayoutParams) btnSkip.getLayoutParams();
+            ViewGroup.MarginLayoutParams skipParams = (ViewGroup.MarginLayoutParams) btnSkip.getLayoutParams();
             skipParams.topMargin = skipBaseTop + bars.top;
             btnSkip.setLayoutParams(skipParams);
 

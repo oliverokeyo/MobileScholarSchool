@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Spacing scale: use only these so margins stay consistent -->
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_sm">8dp</dimen>
+    <dimen name="space_md">16dp</dimen>
+    <dimen name="space_lg">24dp</dimen>
+    <dimen name="space_xl">32dp</dimen>
+    <dimen name="space_xxl">48dp</dimen>
+
+    <!-- Screen edge margin, the same on every screen -->
+    <dimen name="screen_margin">24dp</dimen>
+
+    <!-- Shape -->
+    <dimen name="radius_card">24dp</dimen>
+    <dimen name="radius_input">16dp</dimen>
+    <dimen name="radius_pill">100dp</dimen>
+
+    <!-- Sizes -->
+    <dimen name="button_height">56dp</dimen>
+    <dimen name="input_height">56dp</dimen>
+    <dimen name="icon_size">24dp</dimen>
+</resources>

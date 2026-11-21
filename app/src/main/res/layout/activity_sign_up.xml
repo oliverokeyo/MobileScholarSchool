@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Root is now a ScrollView (still id "main") so the longer form can scroll on small screens -->
+<!-- Root is a ScrollView (still id "main") so the longer form can scroll on small screens.
+     overScrollMode="always": the page stretches when dragged even if everything already fits.
+     scrollbars="vertical": a thin scrollbar shows while scrolling, hinting there is more. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_main"
     android:clipToPadding="false"
     android:fillViewport="true"
+    android:overScrollMode="always"
+    android:scrollbarStyle="outsideOverlay"
+    android:scrollbars="vertical"
     tools:context=".SignUp.SignUpActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -18,21 +24,22 @@
             android:id="@+id/txtViewTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_xxl"
             android:text="@string/app_title"
-            android:textSize="36sp"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:textAppearance="@style/TextAppearance.App.Display"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/txtViewSignUp"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_sm"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:text="@string/title_sign_up"
-            android:textSize="16sp"
+            android:textAppearance="@style/TextAppearance.App.Greeting"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtViewTitle" />
@@ -41,14 +48,12 @@
             android:id="@+id/editTxtTxtFullName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="24dp"
-            android:layout_marginEnd="32dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_xl"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:autofillHints="name"
-            android:hint="@string/hint_full_name"
             android:drawableStart="@drawable/ic_name"
-            android:drawablePadding="12dp"
-            android:drawableTint="@color/icon_dark"
+            android:hint="@string/hint_full_name"
             android:inputType="textPersonName"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -58,13 +63,11 @@
             android:id="@+id/editTxtIDNumber"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="32dp"
-            android:hint="@string/hint_id_number"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:drawableStart="@drawable/ic_idnumber"
-            android:drawablePadding="12dp"
-            android:drawableTint="@color/icon_dark"
+            android:hint="@string/hint_id_number"
             android:importantForAutofill="no"
             android:inputType="number"
             app:layout_constraintEnd_toEndOf="parent"
@@ -75,26 +78,26 @@
             android:id="@+id/editTxtTxtRegisterationNo"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="32dp"
-            android:hint="@string/hint_registration_no"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:drawableStart="@drawable/ic_regnumber"
-            android:drawablePadding="12dp"
-            android:drawableTint="@color/icon_dark"
+            android:hint="@string/hint_registration_no"
             android:importantForAutofill="no"
             android:inputType="textCapCharacters|textNoSuggestions"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/editTxtIDNumber" />
 
+        <!-- Gender -->
         <TextView
             android:id="@+id/txtViewGender"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_lg"
             android:text="@string/label_gender"
+            android:textAppearance="@style/TextAppearance.App.Label"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/editTxtTxtRegisterationNo" />
 
@@ -102,8 +105,8 @@
             android:id="@+id/radioGroupGender"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="4dp"
+            android:layout_marginStart="@dimen/space_md"
+            android:layout_marginTop="@dimen/space_xs"
             android:orientation="horizontal"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtViewGender">
@@ -112,140 +115,140 @@
                 android:id="@+id/radioMale"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/gender_male"
                 android:drawableEnd="@drawable/ic_male"
-                android:drawablePadding="8dp"
-                android:drawableTint="@color/icon_dark" />
+                android:drawablePadding="@dimen/space_sm"
+                android:drawableTint="@color/text_primary"
+                android:text="@string/gender_male"
+                android:textAppearance="@style/TextAppearance.App.Body" />
 
             <RadioButton
                 android:id="@+id/radioFemale"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:text="@string/gender_female"
+                android:layout_marginStart="@dimen/space_lg"
                 android:drawableEnd="@drawable/ic_female"
-                android:drawablePadding="8dp"
-                android:drawableTint="@color/icon_dark" />
+                android:drawablePadding="@dimen/space_sm"
+                android:drawableTint="@color/text_primary"
+                android:text="@string/gender_female"
+                android:textAppearance="@style/TextAppearance.App.Body" />
         </RadioGroup>
 
+        <!-- Department -->
         <TextView
             android:id="@+id/txtViewDepartment"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_md"
             android:text="@string/label_department"
+            android:textAppearance="@style/TextAppearance.App.Label"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/radioGroupGender" />
 
+        <!-- Look (shape, chevron, padding) comes from the theme's spinnerStyle -->
         <Spinner
             android:id="@+id/spinnerDepartment"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="32dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_sm"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:entries="@array/department_list"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtViewDepartment" />
 
+        <!-- Course -->
         <TextView
             android:id="@+id/txtViewCourse"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_md"
             android:text="@string/label_course"
+            android:textAppearance="@style/TextAppearance.App.Label"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/spinnerDepartment" />
 
         <Spinner
             android:id="@+id/spinnerCourse"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="32dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_sm"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:entries="@array/course_list"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtViewCourse" />
 
-
+        <!-- Account details -->
         <EditText
             android:id="@+id/editTxtTxtEmailAddress"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="32dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_lg"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:autofillHints="emailAddress"
-            android:hint="@string/hint_email"
             android:drawableStart="@drawable/ic_email"
-            android:drawablePadding="12dp"
-            android:drawableTint="@color/icon_dark"
+            android:hint="@string/hint_email"
             android:inputType="textEmailAddress"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/spinnerCourse" />
 
-
         <EditText
             android:id="@+id/editTxtTxtPassword"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="32dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:autofillHints="newPassword"
-            android:hint="@string/hint_password"
             android:drawableStart="@drawable/ic_password"
             android:drawableEnd="@drawable/ic_see"
-            android:drawablePadding="12dp"
-            android:drawableTint="@color/icon_dark"
+            android:hint="@string/hint_password"
             android:inputType="textPassword"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/editTxtTxtEmailAddress" />
 
-
         <EditText
             android:id="@+id/editTxtTxtConfirmPassword"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="32dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:autofillHints="newPassword"
-            android:hint="@string/hint_confirm_password"
             android:drawableStart="@drawable/ic_password"
             android:drawableEnd="@drawable/ic_see"
-            android:drawablePadding="12dp"
-            android:drawableTint="@color/icon_dark"
+            android:hint="@string/hint_confirm_password"
             android:inputType="textPassword"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/editTxtTxtPassword" />
 
-
         <CheckBox
             android:id="@+id/checkBoxTC"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginStart="@dimen/space_md"
+            android:layout_marginTop="@dimen/space_md"
             android:text="@string/agree_terms"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:textAppearance="@style/TextAppearance.App.Body"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/editTxtTxtConfirmPassword" />
 
         <Button
             android:id="@+id/btnSignUp"
+            style="@style/Widget.App.Button.Primary"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="32dp"
+            android:layout_marginStart="@dimen/screen_margin"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginEnd="@dimen/screen_margin"
             android:text="@string/btn_sign_up"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -255,9 +258,11 @@
             android:id="@+id/txtViewLogin"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp"
+            android:layout_marginTop="@dimen/space_md"
+            android:layout_marginBottom="@dimen/space_lg"
+            android:padding="@dimen/space_sm"
             android:text="@string/have_account"
+            android:textAppearance="@style/TextAppearance.App.Body"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

@@ -5,6 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_main"
     tools:context=".PaymentsTab.PaymentActivity">
 
     <!-- Scrollable area: sits between the top of the screen and the bottom nav -->
@@ -13,17 +14,17 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNav">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <!-- NestedScrollView allows ONLY ONE child, so everything lives in this container -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/contentHostel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="24dp">
+            android:paddingBottom="@dimen/space_lg">
 
             <!-- ===================== HEADER ===================== -->
 
@@ -31,57 +32,55 @@
                 android:id="@+id/txtViewTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="48dp"
-                android:gravity="center"
+                android:layout_marginStart="@dimen/screen_margin"
                 android:text="@string/app_title"
-                android:textSize="36sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
+                android:textAppearance="@style/TextAppearance.App.Display"
+                app:layout_constraintBottom_toBottomOf="@id/imgNotifications"
                 app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/imgNotifications" />
+
+            <ImageButton
+                android:id="@+id/imgNotifications"
+                style="@style/Widget.App.IconButton.Light"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="@dimen/space_lg"
+                android:layout_marginEnd="@dimen/screen_margin"
+                android:contentDescription="@string/cd_notifications"
+                android:src="@drawable/ic_notifications"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
                 android:id="@+id/imgPayments"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_xl"
+                android:background="@drawable/bg_circle_icon_light"
                 android:contentDescription="@string/cd_payments_icon"
+                android:padding="13dp"
+                android:scaleType="centerInside"
                 android:src="@drawable/ic_payments"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtViewTitle"
+                app:layout_constraintTop_toBottomOf="@id/imgNotifications"
                 app:tint="@color/icon_dark" />
 
             <TextView
                 android:id="@+id/txtViewWelcome"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginStart="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
                 android:text="@string/payments_welcome"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toStartOf="@id/imgNotifications"
+                android:textAppearance="@style/TextAppearance.App.Section"
+                app:layout_constraintBottom_toBottomOf="@id/imgPayments"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/imgPayments"
                 app:layout_constraintTop_toTopOf="@id/imgPayments" />
 
-            <ImageButton
-                android:id="@+id/imgNotifications"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginEnd="24dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/cd_notifications"
-                android:padding="0dp"
-                android:scaleType="center"
-                android:src="@drawable/ic_notifications"
-                app:layout_constraintBottom_toBottomOf="@id/imgPayments"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/imgPayments"
-                app:tint="@color/icon_dark" />
-
-            <!-- Invisible line that sits below the LOWEST of the header views,
-                 so anything anchored to it can never overlap the header -->
+            <!-- Sits below the LOWEST header view, so nothing can overlap it
+                 even when the welcome text wraps onto extra lines -->
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/headerBarrier"
                 android:layout_width="wrap_content"
@@ -89,15 +88,21 @@
                 app:barrierDirection="bottom"
                 app:constraint_referenced_ids="imgPayments,txtViewWelcome,imgNotifications" />
 
+            <!-- Status shown as a small grey pill -->
             <TextView
                 android:id="@+id/txtViewStatus"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginEnd="24dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:background="@drawable/bg_chip"
+                android:paddingStart="@dimen/space_md"
+                android:paddingTop="@dimen/space_sm"
+                android:paddingEnd="@dimen/space_md"
+                android:paddingBottom="@dimen/space_sm"
                 android:text="@string/registration_status_default"
-                app:layout_constraintEnd_toEndOf="parent"
+                android:textAppearance="@style/TextAppearance.App.Label"
+                android:textSize="12sp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/headerBarrier" />
 
@@ -106,11 +111,9 @@
                 android:id="@+id/cardPaymentForm"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginEnd="24dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_lg"
+                android:layout_marginEnd="@dimen/screen_margin"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/txtViewStatus">
@@ -119,7 +122,7 @@
                     android:id="@+id/formContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp">
+                    android:padding="@dimen/space_lg">
 
                     <!-- Form title -->
                     <TextView
@@ -127,19 +130,19 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/make_a_payment"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.App.Section"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
 
-                    <!-- Student number -->
+                    <!-- Student number (look comes from the theme's editTextStyle) -->
                     <TextView
                         android:id="@+id/txtViewStudentNo"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
+                        android:layout_marginTop="@dimen/space_lg"
                         android:labelFor="@id/editTxtTxtStudentNo"
                         android:text="@string/label_student_number"
+                        android:textAppearance="@style/TextAppearance.App.Label"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/txtViewMakePayment" />
 
@@ -147,12 +150,11 @@
                         android:id="@+id/editTxtTxtStudentNo"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="@dimen/space_sm"
                         android:autofillHints="username"
                         android:hint="@string/hint_student_number"
                         android:imeOptions="actionNext"
                         android:inputType="textCapCharacters"
-                        android:minHeight="48dp"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/txtViewStudentNo" />
@@ -162,9 +164,10 @@
                         android:id="@+id/txtViewAmount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="@dimen/space_md"
                         android:labelFor="@id/editTxtNumberAmount"
                         android:text="@string/label_amount"
+                        android:textAppearance="@style/TextAppearance.App.Label"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/editTxtTxtStudentNo" />
 
@@ -172,11 +175,10 @@
                         android:id="@+id/editTxtNumberAmount"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="@dimen/space_sm"
                         android:hint="@string/hint_amount"
                         android:imeOptions="actionNext"
                         android:inputType="number"
-                        android:minHeight="48dp"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/txtViewAmount" />
@@ -186,9 +188,10 @@
                         android:id="@+id/textViewPhoneNo"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="@dimen/space_md"
                         android:labelFor="@id/editTxtNumberPhoneNo"
                         android:text="@string/label_phone"
+                        android:textAppearance="@style/TextAppearance.App.Label"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/editTxtNumberAmount" />
 
@@ -196,22 +199,22 @@
                         android:id="@+id/editTxtNumberPhoneNo"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="@dimen/space_sm"
                         android:autofillHints="phone"
                         android:hint="@string/hint_phone"
                         android:imeOptions="actionDone"
                         android:inputType="phone"
-                        android:minHeight="48dp"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/textViewPhoneNo" />
 
-                    <!-- Submit button: full width of the form -->
+                    <!-- Primary pill button, full width of the form -->
                     <Button
                         android:id="@+id/btnPayment"
+                        style="@style/Widget.App.Button.Primary"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
+                        android:layout_marginTop="@dimen/space_lg"
                         android:text="@string/btn_continue_pay"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -227,66 +230,85 @@
                 android:id="@+id/txtViewRecentTransactions"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="32dp"
-                android:layout_marginEnd="24dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginEnd="@dimen/screen_margin"
                 android:text="@string/recent_transactions"
-                android:textSize="22sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/cardPaymentForm" />
 
-            <ImageView
-                android:id="@+id/imgReceipt"
-                android:layout_width="wrap_content"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardTransactions"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:contentDescription="@string/cd_receipt_icon"
-                android:src="@drawable/ic_receipt"
-                app:layout_constraintBottom_toBottomOf="@id/txtViewTransactionDesc"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="@id/txtViewTransactionTitle"
-                app:tint="@color/icon_dark" />
-
-            <ImageButton
-                android:id="@+id/imgForward"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginEnd="24dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/cd_view_transaction"
-                android:padding="0dp"
-                android:scaleType="center"
-                android:src="@drawable/ic_forward"
-                app:layout_constraintBottom_toBottomOf="@id/txtViewTransactionDesc"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/txtViewTransactionTitle"
-                app:tint="@color/icon_dark" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewRecentTransactions">
 
-            <TextView
-                android:id="@+id/txtViewTransactionTitle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginEnd="12dp"
-                android:text="@string/transaction_title"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toStartOf="@id/imgForward"
-                app:layout_constraintStart_toEndOf="@id/imgReceipt"
-                app:layout_constraintTop_toBottomOf="@id/txtViewRecentTransactions" />
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/space_md">
 
-            <TextView
-                android:id="@+id/txtViewTransactionDesc"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/transaction_desc"
-                app:layout_constraintEnd_toEndOf="@id/txtViewTransactionTitle"
-                app:layout_constraintStart_toStartOf="@id/txtViewTransactionTitle"
-                app:layout_constraintTop_toBottomOf="@id/txtViewTransactionTitle" />
+                    <ImageView
+                        android:id="@+id/imgReceipt"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_circle_icon_light"
+                        android:contentDescription="@string/cd_receipt_icon"
+                        android:padding="10dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_receipt"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/icon_dark" />
+
+                    <!-- Title + description form a packed chain: centred beside the icon -->
+                    <TextView
+                        android:id="@+id/txtViewTransactionTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="@string/transaction_title"
+                        android:textAppearance="@style/TextAppearance.App.CardTitle"
+                        app:layout_constraintBottom_toTopOf="@id/txtViewTransactionDesc"
+                        app:layout_constraintEnd_toStartOf="@id/imgForward"
+                        app:layout_constraintStart_toEndOf="@id/imgReceipt"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/txtViewTransactionDesc"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/transaction_desc"
+                        android:textAppearance="@style/TextAppearance.App.Body"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="@id/txtViewTransactionTitle"
+                        app:layout_constraintStart_toStartOf="@id/txtViewTransactionTitle"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewTransactionTitle" />
+
+                    <ImageButton
+                        android:id="@+id/imgForward"
+                        style="@style/Widget.App.IconButton.Light"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:contentDescription="@string/cd_view_transaction"
+                        android:src="@drawable/ic_forward"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- ===================== STUDENT REGISTRATION ===================== -->
 
@@ -294,67 +316,85 @@
                 android:id="@+id/txtViewStudentRegistration"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="32dp"
-                android:layout_marginEnd="24dp"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginEnd="@dimen/screen_margin"
                 android:text="@string/student_registration"
-                android:textSize="22sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtViewTransactionDesc" />
+                app:layout_constraintTop_toBottomOf="@id/cardTransactions" />
 
-            <ImageView
-                android:id="@+id/imgPrint"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:contentDescription="@string/cd_print_icon"
-                android:src="@drawable/ic_print"
-                app:layout_constraintBottom_toBottomOf="@id/txtViewPrintDesc"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="@id/txtViewPrintTitle"
-                app:tint="@color/icon_dark" />
-
-            <ImageButton
-                android:id="@+id/imgForwardPrint"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginEnd="24dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/cd_print_registration"
-                android:padding="0dp"
-                android:scaleType="center"
-                android:src="@drawable/ic_forward"
-                app:layout_constraintBottom_toBottomOf="@id/txtViewPrintDesc"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/txtViewPrintTitle"
-                app:tint="@color/icon_dark" />
-
-            <TextView
-                android:id="@+id/txtViewPrintTitle"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardRegistration"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginEnd="12dp"
-                android:text="@string/print_registration_title"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toStartOf="@id/imgForwardPrint"
-                app:layout_constraintStart_toEndOf="@id/imgPrint"
-                app:layout_constraintTop_toBottomOf="@id/txtViewStudentRegistration" />
-
-            <TextView
-                android:id="@+id/txtViewPrintDesc"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/print_registration_desc"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="@id/txtViewPrintTitle"
-                app:layout_constraintStart_toStartOf="@id/txtViewPrintTitle"
-                app:layout_constraintTop_toBottomOf="@id/txtViewPrintTitle" />
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewStudentRegistration">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/space_md">
+
+                    <ImageView
+                        android:id="@+id/imgPrint"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_circle_icon_light"
+                        android:contentDescription="@string/cd_print_icon"
+                        android:padding="10dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_print"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/icon_dark" />
+
+                    <TextView
+                        android:id="@+id/txtViewPrintTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="@string/print_registration_title"
+                        android:textAppearance="@style/TextAppearance.App.CardTitle"
+                        app:layout_constraintBottom_toTopOf="@id/txtViewPrintDesc"
+                        app:layout_constraintEnd_toStartOf="@id/imgForwardPrint"
+                        app:layout_constraintStart_toEndOf="@id/imgPrint"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/txtViewPrintDesc"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/print_registration_desc"
+                        android:textAppearance="@style/TextAppearance.App.Body"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="@id/txtViewPrintTitle"
+                        app:layout_constraintStart_toStartOf="@id/txtViewPrintTitle"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewPrintTitle" />
+
+                    <ImageButton
+                        android:id="@+id/imgForwardPrint"
+                        style="@style/Widget.App.IconButton.Light"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:contentDescription="@string/cd_print_registration"
+                        android:src="@drawable/ic_forward"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
