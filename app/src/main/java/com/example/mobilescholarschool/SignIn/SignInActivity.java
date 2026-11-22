@@ -21,9 +21,10 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.mobilescholarschool.HomeTab.HomeActivity;
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.Components.PasswordToggle;
+import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.PendingRegistrationStore;       // NEW
-import com.example.mobilescholarschool.Components.RegistrationSyncScheduler;      // NEW
 import com.example.mobilescholarschool.SignUp.SignUpActivity;
+import com.example.mobilescholarschool.Sync.SyncScheduler;                    // CHANGED: replaces RegistrationSyncScheduler
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.FirebaseAuth;
@@ -70,7 +71,9 @@ public class SignInActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (mAuth.getCurrentUser() != null) {
+        // CHANGED: also skip this screen for a student whose offline sign-up is still waiting:
+        // they keep using the app (see SessionUser) instead of being asked to sign in again.
+        if (SessionUser.hasSession(this)) {
             goToHome();
         }
     }
@@ -89,7 +92,7 @@ public class SignInActivity extends AppCompatActivity {
         // alarming, so we explain what is really happening instead.
         if (isPendingRegistration(emailAddress, password)) {
             // Safety net: make sure the sync job is scheduled (KEEP prevents duplicates)
-            RegistrationSyncScheduler.enqueue(this);
+            SyncScheduler.enqueue(this);
 
             String message = isOnline()
                     ? "Finishing setting up your account. Please try again in a moment."
@@ -176,6 +179,9 @@ public class SignInActivity extends AppCompatActivity {
     }
 
     private void goToHome() {
+        // NEW: every time a student gets in, deliver anything saved on this phone while they
+        // were offline or signed out (KEEP inside the scheduler prevents duplicate jobs)
+        SyncScheduler.enqueue(this);
         Intent intent = new Intent(SignInActivity.this, HomeActivity.class);
         startActivity(intent);
         finish();

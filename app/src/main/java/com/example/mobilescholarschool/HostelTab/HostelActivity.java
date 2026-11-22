@@ -17,20 +17,25 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
+import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
+import com.example.mobilescholarschool.Data.DataChangeNotifier;          // NEW
+import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
+import com.example.mobilescholarschool.Data.HostelBookingRepository;     // NEW
+import com.example.mobilescholarschool.Data.ProfileRepository;           // NEW
+import com.example.mobilescholarschool.Data.SyncState;                   // NEW
 import com.example.mobilescholarschool.R;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 
 public class HostelActivity extends AppCompatActivity {
@@ -66,6 +71,16 @@ public class HostelActivity extends AppCompatActivity {
     private TextView txtBookingStatus;
     private String originalBookingText;
     private ListenerRegistration bookingsListener;
+
+    // NEW: fires when the local database changes (a booking was saved, delivered or refused,
+    // or the profile copy changed), so the card and the student ID refresh by themselves
+    private final DataChangeNotifier.Listener dataListener = table -> {
+        if (AppDatabase.T_HOSTEL_BOOKINGS.equals(table)) {
+            loadLocalBookings();
+        } else if (AppDatabase.T_PROFILE.equals(table)) {
+            loadLocalProfile(true);
+        }
+    };
     private boolean hasActiveBooking = false;   // true while a booking is pending or approved
     private String originalLocationText, originalSharingText, originalRoomText, originalBudgetText;
 
@@ -116,8 +131,11 @@ public class HostelActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         if (txtViewStudentID != null) {   // null only if AuthGuard sent a signed-out user away
-            listenToStudentId();
-            listenToBookings();
+            DataChangeNotifier.register(dataListener);   // NEW
+            loadLocalProfile(false);                     // NEW: instant, works offline
+            loadLocalBookings();                         // NEW: instant, works offline
+            listenToStudentId();    // server -> local copy
+            listenToBookings();     // server -> local copy
         }
     }
 
@@ -133,6 +151,7 @@ public class HostelActivity extends AppCompatActivity {
             bookingsListener.remove();
             bookingsListener = null;
         }
+        DataChangeNotifier.unregister(dataListener);   // NEW
     }
 
     @Override
@@ -267,6 +286,12 @@ public class HostelActivity extends AppCompatActivity {
 
     /** Opens "Hostel Search Result" with the four choices the student has made. */
     private void openSearchResults() {
+        // The room list lives on the server and needs a real account. A waiting sign-up has none yet.
+        if (!SessionUser.isSignedIn()) {
+            Toast.makeText(this, "Searching hostels needs your account. It works once your "
+                    + "account has been created.", Toast.LENGTH_LONG).show();
+            return;
+        }
         // Already open (for example after a rotation)? Don't stack a second one.
         if (getSupportFragmentManager().findFragmentByTag(HostelSearchResultDialogFragment.TAG) != null) {
             return;
@@ -278,14 +303,15 @@ public class HostelActivity extends AppCompatActivity {
     }
 
     /**
-     * Turns the student's confirmed choice into a document in "hostelBookings".
-     * It is a REQUEST with status "pending": the admin approves it later (and only then is the
-     * place theirs). Free places are not reduced here; that is the admin side's job.
+     * CHANGED: saves the student's confirmed choice in the LOCAL database (sync_state =
+     * pending_sync). SyncWorker later creates the document in "hostelBookings" with status
+     * "pending" and sends it as soon as there is internet. The admin approves it afterwards,
+     * and only then is the place theirs. Free places are not reduced here.
      */
     private void saveBooking(Bundle booking) {
-        // The student's identity comes from Firebase Auth here, never from the dialog,
-        // so a booking can only ever be made in the signed-in student's own name.
-        String uid = FirebaseAuth.getInstance().getUid();
+        // The student's identity comes from the session here (real uid, or the provisional id of a
+        // waiting sign-up), never from the dialog, so a booking is always in the student's own name.
+        String uid = SessionUser.uid(getApplicationContext());
         if (uid == null) {
             Toast.makeText(this, "Please sign in again.", Toast.LENGTH_LONG).show();
             return;
@@ -301,39 +327,41 @@ public class HostelActivity extends AppCompatActivity {
             return;
         }
 
-        // EXACTLY these ten fields: the security rules reject any extra or missing field.
-        Map<String, Object> data = new HashMap<>();
-        data.put("studentUid", uid);
-        data.put("studentIdNumber", studentId.trim());
-        data.put("hostelId", booking.getString(HostelSearchResultDialogFragment.RESULT_HOSTEL_ID, ""));
-        data.put("hostelName", booking.getString(HostelSearchResultDialogFragment.RESULT_HOSTEL_NAME, ""));
-        data.put("roomId", booking.getString(HostelSearchResultDialogFragment.RESULT_ROOM_ID, ""));
-        data.put("roomType", booking.getString(HostelSearchResultDialogFragment.RESULT_ROOM_TYPE, ""));
-        data.put("sharing", booking.getString(HostelSearchResultDialogFragment.RESULT_SHARING, ""));
-        data.put("rentPerMonth", booking.getLong(HostelSearchResultDialogFragment.RESULT_RENT, 0));
-        data.put("status", "pending");                          // only the admin changes this later
-        data.put("createdAt", FieldValue.serverTimestamp());    // the SERVER's clock, not the phone's
+        HostelBookingRepository.Booking b = new HostelBookingRepository.Booking();
+        b.uid = uid;
+        b.studentIdNumber = studentId.trim();
+        b.hostelId = booking.getString(HostelSearchResultDialogFragment.RESULT_HOSTEL_ID, "");
+        b.hostelName = booking.getString(HostelSearchResultDialogFragment.RESULT_HOSTEL_NAME, "");
+        b.roomId = booking.getString(HostelSearchResultDialogFragment.RESULT_ROOM_ID, "");
+        b.roomType = booking.getString(HostelSearchResultDialogFragment.RESULT_ROOM_TYPE, "");
+        b.sharing = booking.getString(HostelSearchResultDialogFragment.RESULT_SHARING, "");
+        b.rentPerMonth = booking.getLong(HostelSearchResultDialogFragment.RESULT_RENT, 0);
 
-        // Firestore records the booking on the phone straight away (the card below shows it as
-        // "sending…") and delivers it to the server when it can.
-        Toast.makeText(this, "Booking request sent. Track it under My Accommodation.",
-                Toast.LENGTH_LONG).show();
+        // Block a quick double tap before the database has answered
+        hasActiveBooking = true;
 
-        FirebaseFirestore.getInstance().collection("hostelBookings").add(data)
-                .addOnSuccessListener(this, ref ->
-                        Log.d(TAG, "Booking saved with ID " + ref.getId()))
-                .addOnFailureListener(this, e -> {
-                    // The student sees a friendly message; YOU see the real reason in Logcat
-                    // (PERMISSION_DENIED means a rule rejected it: see the troubleshooting list).
-                    Log.e(TAG, "Saving the booking failed", e);
-                    Toast.makeText(this, "Your booking could not be saved. Please try again.",
-                            Toast.LENGTH_LONG).show();
-                });
+        DbExecutor.async(() -> HostelBookingRepository.createLocal(getApplicationContext(), b), id -> {
+            if (id == null) {
+                hasActiveBooking = false;
+                Toast.makeText(getApplicationContext(),
+                        "Could not save your booking on this phone. Please try again.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            Toast.makeText(getApplicationContext(),
+                    "Booking saved. It is sent automatically when you are online. "
+                            + "Track it under My Accommodation.",
+                    Toast.LENGTH_LONG).show();
+        });
     }
 
     /**
-     * Keeps the "My Accommodation" card up to date with the student's LATEST booking, live.
-     * Also works out whether a booking is already pending/approved (saveBooking checks that).
+     * CHANGED: this Firestore listener no longer draws the card. It only COPIES the server's
+     * bookings into the local database (so admin decisions such as "approved" arrive here).
+     * The card is drawn from the local database by loadLocalBookings().
+     *
+     * LESSON: ONE source of truth for the screen. Server -> local database -> screen.
+     * Offline, the chain simply stops at the first arrow and the screen still has data.
      */
     private void listenToBookings() {
         String uid = FirebaseAuth.getInstance().getUid();
@@ -353,60 +381,102 @@ public class HostelActivity extends AppCompatActivity {
                         Log.e(TAG, "Bookings listener failed", error);
                         return;   // keep showing what we had
                     }
-
-                    boolean active = false;
-                    DocumentSnapshot latest = null;
+                    List<HostelBookingRepository.Booking> rows = new ArrayList<>();
                     for (DocumentSnapshot doc : snap.getDocuments()) {
                         try {
-                            String status = bookingStatusOf(doc.getString("status"));
-                            if (status.equals("pending") || status.equals("approved")) {
-                                active = true;
-                            }
-                            if (latest == null
-                                    || isNewer(doc.getTimestamp("createdAt"), latest.getTimestamp("createdAt"))) {
-                                latest = doc;
-                            }
+                            rows.add(bookingFrom(uid, doc));
                         } catch (RuntimeException e) {
                             Log.e(TAG, "Skipping bad booking document: " + doc.getId(), e);
                         }
                     }
-                    hasActiveBooking = active;
-                    showBookingStatus(latest);
+                    DbExecutor.run(() ->
+                            HostelBookingRepository.mirrorFromServer(getApplicationContext(), rows));
                 });
     }
 
+    /** Turns a Firestore document into a row. Missing text becomes "" (the table forbids NULL). */
+    private static HostelBookingRepository.Booking bookingFrom(String uid, DocumentSnapshot doc) {
+        HostelBookingRepository.Booking b = new HostelBookingRepository.Booking();
+        b.localId = doc.getId();   // the document id IS the local id (see the repository)
+        b.uid = uid;
+        b.studentIdNumber = orEmpty(doc.getString("studentIdNumber"));
+        b.hostelId = orEmpty(doc.getString("hostelId"));
+        b.hostelName = orEmpty(doc.getString("hostelName"));
+        b.roomId = orEmpty(doc.getString("roomId"));
+        b.roomType = orEmpty(doc.getString("roomType"));
+        b.sharing = orEmpty(doc.getString("sharing"));
+        Long rent = doc.getLong("rentPerMonth");
+        b.rentPerMonth = rent == null ? 0 : rent;
+        b.status = orEmpty(doc.getString("status"));
+        Timestamp created = doc.getTimestamp("createdAt");
+        b.createdMillis = created == null ? 0 : created.toDate().getTime();   // 0 = not known yet
+        return b;
+    }
+
+    private static String orEmpty(@Nullable String value) {
+        return value == null ? "" : value;
+    }
+
+    /**
+     * Reads this student's bookings from the LOCAL database (newest first, unsent ones on top),
+     * works out whether one is still active, and redraws the card.
+     */
+    private void loadLocalBookings() {
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
+        if (uid == null || txtBookingStatus == null) {
+            return;
+        }
+        DbExecutor.async(() -> HostelBookingRepository.listFor(getApplicationContext(), uid), list -> {
+            if (list == null || isFinishing() || isDestroyed()) {
+                return;
+            }
+            boolean active = false;
+            for (HostelBookingRepository.Booking b : list) {
+                String status = bookingStatusOf(b.status);
+                // A booking the server refused is not "active": the student may book again
+                if (!SyncState.FAILED.equals(b.syncState)
+                        && (status.equals("pending") || status.equals("approved"))) {
+                    active = true;
+                }
+            }
+            hasActiveBooking = active;
+            showBookingStatus(list.isEmpty() ? null : list.get(0));
+        });
+    }
+
     /** Fills the card: "Pending: Greenview Hostel · Bedsitter · private · KES 12,000 per month". */
-    private void showBookingStatus(@Nullable DocumentSnapshot latest) {
+    private void showBookingStatus(@Nullable HostelBookingRepository.Booking latest) {
         if (latest == null) {
             txtBookingStatus.setText(originalBookingText);   // "No active booking"
             return;
         }
         try {
-            String status = bookingStatusOf(latest.getString("status"));
-            String word = status.isEmpty() ? "Unknown"
+            boolean failed = SyncState.FAILED.equals(latest.syncState);
+            String status = bookingStatusOf(latest.status);
+            String word = failed ? "Not sent"
+                    : status.isEmpty() ? "Unknown"
                     : Character.toUpperCase(status.charAt(0)) + status.substring(1);
 
-            String hostel = latest.getString("hostelName");
-            String roomLabel = HostelChoiceDialogFragment.roomTypeLabel(
-                    bookingStatusOf(latest.getString("roomType")));
-            String roomType = roomLabel != null ? roomLabel : latest.getString("roomType");
-            String sharing = latest.getString("sharing");
-            Long rent = latest.getLong("rentPerMonth");
+            String roomLabel = HostelChoiceDialogFragment.roomTypeLabel(bookingStatusOf(latest.roomType));
+            String roomType = roomLabel != null ? roomLabel : latest.roomType;
 
             StringBuilder text = new StringBuilder(word).append(": ")
-                    .append(hostel == null || hostel.trim().isEmpty() ? "-" : hostel.trim());
+                    .append(latest.hostelName.trim().isEmpty() ? "-" : latest.hostelName.trim());
             if (roomType != null && !roomType.trim().isEmpty()) {
                 text.append("  ·  ").append(roomType.trim());
             }
-            if (sharing != null && !sharing.trim().isEmpty()) {
-                text.append("  ·  ").append(sharing.trim());
+            if (!latest.sharing.trim().isEmpty()) {
+                text.append("  ·  ").append(latest.sharing.trim());
             }
-            if (rent != null) {
-                text.append("  ·  KES ").append(HostelBudgetDialogFragment.formatKes(rent)).append(" per month");
+            if (latest.rentPerMonth > 0) {
+                text.append("  ·  KES ").append(HostelBudgetDialogFragment.formatKes(latest.rentPerMonth))
+                        .append(" per month");
             }
-            // "(sending…)" = saved on the phone but the server has not confirmed it yet
-            if (latest.getMetadata().hasPendingWrites()) {
-                text.append("  (sending…)");
+            if (SyncState.PENDING_SYNC.equals(latest.syncState)) {
+                // CHANGED: was latest.getMetadata().hasPendingWrites(). Saved here, not on the server yet.
+                text.append("  (waiting to send…)");
+            } else if (failed && latest.syncError != null) {
+                text.append("\n").append(latest.syncError);
             }
             txtBookingStatus.setText(text.toString());
         } catch (RuntimeException e) {
@@ -418,13 +488,6 @@ public class HostelActivity extends AppCompatActivity {
     /** "Pending ", "PENDING" and "pending" all mean the same, so a console typo can't break the card. */
     private static String bookingStatusOf(@Nullable String raw) {
         return raw == null ? "" : raw.trim().toLowerCase(java.util.Locale.ROOT);
-    }
-
-    /** A booking still waiting to reach the server has no createdAt yet, so it counts as the newest. */
-    private static boolean isNewer(@Nullable Timestamp a, @Nullable Timestamp b) {
-        if (a == null) return b != null;
-        if (b == null) return false;
-        return a.compareTo(b) > 0;
     }
 
     // ================================================================ student ID (step 3)
@@ -458,14 +521,48 @@ public class HostelActivity extends AppCompatActivity {
                         return;
                     }
 
+                    // NEW. LESSON: offline, with nothing cached, Firestore answers "document does
+                    // not exist". That only means "not on this phone", so do not wipe what we have.
+                    if (doc != null && !doc.exists() && doc.getMetadata().isFromCache()) {
+                        return;
+                    }
+
                     try {
                         studentId = (doc != null && doc.exists()) ? doc.getString("registrationNo") : null;
+                        if (doc != null && doc.exists()) {
+                            // NEW: keep the local copy fresh (Profile and Payment can use it offline)
+                            ProfileRepository.LocalProfile copy =
+                                    ProfileRepository.fromSnapshot(user.getUid(), doc);
+                            DbExecutor.run(() ->
+                                    ProfileRepository.saveFromServer(getApplicationContext(), copy));
+                        }
                     } catch (RuntimeException e) {
                         Log.e(TAG, "registrationNo has the wrong type", e);
                         studentId = null;
                     }
                     showStudentId();
                 });
+    }
+
+    /**
+     * NEW: shows the student ID from the LOCAL copy, so it appears instantly and offline.
+     * @param force false = only fill it if we have nothing yet; true = replace (the copy changed)
+     */
+    private void loadLocalProfile(boolean force) {
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
+        if (uid == null) {
+            return;
+        }
+        DbExecutor.async(() -> ProfileRepository.get(getApplicationContext(), uid), p -> {
+            if (p == null || isFinishing() || isDestroyed()) {
+                return;
+            }
+            if (p.registrationNo != null && !p.registrationNo.trim().isEmpty()
+                    && (force || studentId == null)) {
+                studentId = p.registrationNo;
+                showStudentId();
+            }
+        });
     }
 
     private void showStudentId() {

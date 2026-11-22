@@ -10,6 +10,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;                               // NEW
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -17,22 +18,23 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
+import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
+import com.example.mobilescholarschool.Data.BookRequestRepository;       // NEW
+import com.example.mobilescholarschool.Data.DataChangeNotifier;          // NEW
+import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
+import com.example.mobilescholarschool.Data.ProfileRepository;           // NEW
 import com.example.mobilescholarschool.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * The Library screen:
@@ -69,6 +71,22 @@ public class LibraryTabActivity extends AppCompatActivity {
     // Live connections that keep those numbers fresh (started in onStart, stopped in onStop)
     private ListenerRegistration requestsListener;
     private ListenerRegistration loansListener;
+
+    // ---- NEW: offline support ----
+    // The "Pending" number on screen = requests the server already knows are pending
+    //                                + requests saved on this phone that are not sent yet.
+    private int serverPending = 0;
+    private int localUnsent = 0;
+
+    // Fires whenever the local database changes (a request was saved, delivered or refused)
+    private final DataChangeNotifier.Listener dataListener = table -> {
+        if (AppDatabase.T_BOOK_REQUESTS.equals(table)) {
+            refreshLocalPending();
+        }
+    };
+
+    // The "some requests were not sent" dialog, kept so onStop can close it
+    private AlertDialog failedDialog;
 
     /**
      * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
@@ -178,6 +196,9 @@ public class LibraryTabActivity extends AppCompatActivity {
         super.onStart();
         if (txtBorrowed != null) {   // null only if AuthGuard sent a signed-out user away
             listenForCounts();
+            DataChangeNotifier.register(dataListener);   // NEW
+            refreshLocalPending();                       // NEW
+            showFailedRequests();                        // NEW
         }
     }
 
@@ -188,6 +209,66 @@ public class LibraryTabActivity extends AppCompatActivity {
         super.onStop();
         openingRequestForm = false;
         stopListeningForCounts();
+        DataChangeNotifier.unregister(dataListener);     // NEW
+        if (failedDialog != null) {                      // NEW
+            failedDialog.dismiss();
+            failedDialog = null;
+        }
+    }
+
+    // ---------------------------------------------------------------- NEW: unsent requests
+
+    /** Counts this student's requests that are saved on the phone but not yet on the server. */
+    private void refreshLocalPending() {
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
+        if (uid == null) {
+            return;
+        }
+        DbExecutor.async(() -> BookRequestRepository.countUnsynced(getApplicationContext(), uid),
+                count -> {
+                    if (count == null || isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    localUnsent = count;
+                    showPendingCount();
+                });
+    }
+
+    private void showPendingCount() {
+        txtPending.setText(String.valueOf(serverPending + localUnsent));
+    }
+
+    /**
+     * If the server refused a request we sent for the student later (for example the borrow date
+     * had passed while they were offline), tell them ONCE, then forget it.
+     */
+    private void showFailedRequests() {
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
+        if (uid == null) {
+            return;
+        }
+        DbExecutor.async(() -> BookRequestRepository.failed(getApplicationContext(), uid), failed -> {
+            if (failed == null || failed.isEmpty() || isFinishing() || isDestroyed()
+                    || failedDialog != null) {
+                return;
+            }
+            StringBuilder message = new StringBuilder();
+            List<String> ids = new ArrayList<>();
+            for (BookRequestRepository.Request r : failed) {
+                ids.add(r.localId);
+                String title = (r.bookTitle == null || r.bookTitle.isEmpty()) ? "Book request" : r.bookTitle;
+                message.append("• ").append(title).append("\n  ")
+                        .append(r.syncError == null ? "Not accepted." : r.syncError).append("\n\n");
+            }
+            failedDialog = new MaterialAlertDialogBuilder(this)
+                    .setTitle("Some requests were not sent")
+                    .setMessage(message.toString().trim())
+                    .setPositiveButton("OK", (d, which) ->
+                            DbExecutor.run(() -> BookRequestRepository.deleteRows(
+                                    getApplicationContext(), ids)))
+                    .setOnDismissListener(d -> failedDialog = null)
+                    .show();
+        });
     }
 
     // ---------------------------------------------------------------- NEW: the live counters
@@ -198,6 +279,7 @@ public class LibraryTabActivity extends AppCompatActivity {
      * once with the current data and again on every change.
      */
     private void listenForCounts() {
+        // SERVER listeners need a real account: a waiting sign-up has none, so they stay off
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) {
             return;
@@ -224,7 +306,8 @@ public class LibraryTabActivity extends AppCompatActivity {
                             Log.e(TAG, "Skipping bad request document: " + doc.getId(), e);
                         }
                     }
-                    txtPending.setText(String.valueOf(pending));
+                    serverPending = pending;   // CHANGED: was txtPending.setText(...)
+                    showPendingCount();
                 });
 
         // Borrowed = loans not yet returned. Overdue = those whose due DAY has passed.
@@ -291,16 +374,51 @@ public class LibraryTabActivity extends AppCompatActivity {
             return;   // a profile read is already in flight
         }
 
-        String uid = FirebaseAuth.getInstance().getUid();
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
         if (uid == null) {
             return;   // signed out meanwhile; AuthGuard will redirect on the next launch
         }
 
         openingRequestForm = true;
 
-        // The "this" in each listener ties it to the Activity: if the screen is stopped before
-        // Firestore replies, the callback is skipped, so we never show a dialog on a screen that
-        // is not in the foreground (that would crash with "state already saved").
+        // CHANGED. STEP 1: ask the LOCAL database first. It answers in milliseconds and works
+        // with no internet. (Before, every tap waited for a Firestore round trip.)
+        DbExecutor.async(() -> ProfileRepository.get(getApplicationContext(), uid), local -> {
+            if (isFinishing() || isDestroyed()) {
+                openingRequestForm = false;
+                return;
+            }
+            if (local != null && local.registrationNo != null
+                    && !local.registrationNo.trim().isEmpty()) {
+                openingRequestForm = false;
+                showRequestForm(local.registrationNo.trim());
+            } else {
+                // STEP 2: nothing saved here yet (first run): ask Firestore, like before
+                if (!SessionUser.isSignedIn()) {
+                    openingRequestForm = false;
+                    Toast.makeText(this, "Your student number is not available yet.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                fetchRegistrationNoFromServer(uid);
+            }
+        });
+    }
+
+    /** Opens the form, but only if the screen is still in the foreground. */
+    private void showRequestForm(String registrationNo) {
+        if (isFinishing() || isDestroyed() || getSupportFragmentManager().isStateSaved()) {
+            return;   // showing a dialog now would crash with "state already saved"
+        }
+        // The three nulls mean "start with empty boxes"; later, a book picked from the search
+        // results will pass its ISBN, title and author here.
+        BorrowRequestDialogFragment
+                .newInstance(registrationNo, null, null, null)
+                .show(getSupportFragmentManager(), BorrowRequestDialogFragment.TAG);
+    }
+
+    /** The original Firestore read, now only the fallback for a phone with no local copy yet. */
+    private void fetchRegistrationNoFromServer(String uid) {
         FirebaseFirestore.getInstance().collection("users").document(uid).get()
                 .addOnSuccessListener(this, doc -> {
                     openingRequestForm = false;
@@ -312,18 +430,14 @@ public class LibraryTabActivity extends AppCompatActivity {
                                 Toast.LENGTH_LONG).show();
                         return;
                     }
-
-                    // Open the dialog. The three nulls mean "start with empty boxes"; later, a book
-                    // picked from the search results will pass its ISBN, title and author here.
-                    BorrowRequestDialogFragment
-                            .newInstance(registrationNo.trim(), null, null, null)
-                            .show(getSupportFragmentManager(), BorrowRequestDialogFragment.TAG);
+                    showRequestForm(registrationNo.trim());
                 })
                 .addOnFailureListener(this, e -> {
                     openingRequestForm = false;
                     // The student sees a friendly message; YOU see the real reason in Logcat
                     Log.e(TAG, "Profile read failed", e);
-                    Toast.makeText(this, "Could not load your profile. Check your connection.",
+                    Toast.makeText(this, "Could not load your profile. Connect to the internet once "
+                                    + "so it can be saved on this phone.",
                             Toast.LENGTH_LONG).show();
                 });
     }
@@ -357,50 +471,44 @@ public class LibraryTabActivity extends AppCompatActivity {
     // ---------------------------------------------------------------- NEW: save the request
 
     /**
-     * Turns the finished form into a document in "bookRequests".
+     * CHANGED: saves the finished form in the LOCAL database, not straight to Firestore.
      *
-     * This is the step that was missing before: until now the form's answers only appeared in a
-     * Toast, so nothing reached Firestore and "My requests" (which reads Firestore) had nothing to show.
+     * The row goes into book_requests (sync_state = pending_sync) and the outbox in one
+     * transaction, then SyncWorker delivers it to "bookRequests" as soon as there is internet
+     * (usually within seconds when online). The security rules are unchanged: the worker still
+     * sends exactly the nine fields they require, with status "pending".
      *
-     * Note this creates a REQUEST with status "pending", not a loan. The librarian approves it
-     * later, and only then does the book count as borrowed.
+     * Note this creates a REQUEST, not a loan. The librarian approves it later.
      */
     private void saveRequest(Bundle form) {
         // The student's identity is taken from Firebase Auth here, never from the dialog,
         // so a request can only ever be made in the signed-in student's own name.
-        String uid = FirebaseAuth.getInstance().getUid();
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
         if (uid == null) {
             Toast.makeText(this, "Please sign in again.", Toast.LENGTH_LONG).show();
             return;
         }
 
-        // EXACTLY these nine fields: the security rules reject any extra or missing field.
-        Map<String, Object> request = new HashMap<>();
-        request.put("studentUid", uid);
-        request.put("studentIdNumber", form.getString(BorrowRequestDialogFragment.RESULT_STUDENT_ID, ""));
-        request.put("isbn", form.getString(BorrowRequestDialogFragment.RESULT_ISBN, ""));
-        request.put("bookTitle", form.getString(BorrowRequestDialogFragment.RESULT_TITLE, ""));
-        request.put("author", form.getString(BorrowRequestDialogFragment.RESULT_AUTHOR, ""));
-        request.put("borrowDate", new Timestamp(new Date(
-                form.getLong(BorrowRequestDialogFragment.RESULT_BORROW_MILLIS))));
-        request.put("returnDate", new Timestamp(new Date(
-                form.getLong(BorrowRequestDialogFragment.RESULT_RETURN_MILLIS))));
-        request.put("status", "pending");                      // only the librarian changes this later
-        request.put("createdAt", FieldValue.serverTimestamp()); // the SERVER's clock, not the phone's
+        BookRequestRepository.Request request = new BookRequestRepository.Request();
+        request.uid = uid;
+        request.studentIdNumber = form.getString(BorrowRequestDialogFragment.RESULT_STUDENT_ID, "");
+        request.isbn = form.getString(BorrowRequestDialogFragment.RESULT_ISBN, "");
+        request.bookTitle = form.getString(BorrowRequestDialogFragment.RESULT_TITLE, "");
+        request.author = form.getString(BorrowRequestDialogFragment.RESULT_AUTHOR, "");
+        request.borrowMillis = form.getLong(BorrowRequestDialogFragment.RESULT_BORROW_MILLIS);
+        request.returnMillis = form.getLong(BorrowRequestDialogFragment.RESULT_RETURN_MILLIS);
 
-        // Firestore records the request on the phone straight away (it appears in "My requests" as
-        // "sending…") and delivers it to the server when it can, even on a weak connection.
-        Toast.makeText(this, "Request submitted. Track it under My requests.",
-                Toast.LENGTH_LONG).show();
-
-        repository.submitRequest(request)
-                .addOnSuccessListener(this, ref ->
-                        Log.d(TAG, "Request saved with ID " + ref.getId()))
-                .addOnFailureListener(this, e -> {
-                    // The student sees a friendly message; YOU see the real reason in Logcat
-                    // (PERMISSION_DENIED means the "create" rule rejected it).
-                    Log.e(TAG, "Saving the request failed", e);
-                    Toast.makeText(this, "Your request could not be saved. Please try again.",
+        DbExecutor.async(() -> BookRequestRepository.createLocal(getApplicationContext(), request),
+                id -> {
+                    if (id == null) {
+                        // The student sees a friendly message; YOU see the reason in Logcat
+                        Toast.makeText(getApplicationContext(),
+                                "Could not save your request on this phone. Please try again.",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    Toast.makeText(getApplicationContext(),
+                            "Request saved. It is sent automatically when you are online.",
                             Toast.LENGTH_LONG).show();
                 });
     }
@@ -417,6 +525,11 @@ public class LibraryTabActivity extends AppCompatActivity {
             return;
         }
 
+        if (!catalogueLoaded && !SessionUser.isSignedIn()) {
+            Toast.makeText(this, "Searching the catalogue needs your account. It works once "
+                    + "your account has been created.", Toast.LENGTH_LONG).show();
+            return;
+        }
         if (catalogueLoaded) {
             showResults(query);   // already downloaded: no network needed
             return;
@@ -440,7 +553,7 @@ public class LibraryTabActivity extends AppCompatActivity {
                 // The student sees a friendly message; YOU see the real reason in Logcat
                 // (PERMISSION_DENIED means the rules for "books" are not published yet).
                 Log.e(TAG, "Catalogue failed", task.getException());
-                Toast.makeText(this, "Could not load the catalogue. Check your connection.",
+                Toast.makeText(this, "Could not load the catalogue. Connect to the internet once so it can be saved on this phone.",
                         Toast.LENGTH_LONG).show();
                 return;
             }

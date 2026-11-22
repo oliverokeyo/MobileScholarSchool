@@ -2,9 +2,6 @@ package com.example.mobilescholarschool.ProfileTab;
 
 import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
@@ -30,19 +27,21 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
+import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
+import com.example.mobilescholarschool.Data.DataChangeNotifier;          // NEW
+import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
+import com.example.mobilescholarschool.Data.Outbox;                      // NEW
+import com.example.mobilescholarschool.Data.ProfileRepository;           // NEW
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.SetOptions;
 
-import java.util.HashMap;
-import java.util.Map;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -50,9 +49,21 @@ public class ProfileActivity extends AppCompatActivity {
     private SwipeNavigator swipeNavigator;
 
     FirebaseAuth auth;
-    FirebaseUser user;
+    FirebaseUser user;          // CHANGED: null for a student whose offline sign-up is still waiting
+
+    // NEW: the id to save under (real uid OR provisional id), the email to show, and the mode
+    String uid;
+    String email;
+    boolean provisional;
     FirebaseFirestore db;
     ListenerRegistration profileListener;   // lets us stop listening when we sign out
+
+    // NEW: when the local copy of the profile changes (server update, or our own edit), redraw
+    private final DataChangeNotifier.Listener dataListener = table -> {
+        if (AppDatabase.T_PROFILE.equals(table)) {
+            loadLocalProfile();
+        }
+    };
 
     // Kept in a FIELD (not a local variable) so it can't be garbage collected
     // while the invisible WebView is still rendering the print page.
@@ -110,9 +121,11 @@ public class ProfileActivity extends AppCompatActivity {
 
         auth = FirebaseAuth.getInstance();
         user = auth.getCurrentUser();
+        uid = SessionUser.uid(this);
+        provisional = user == null;
 
-        // Not signed in -> go to Sign In and STOP
-        if (user == null) {
+        // Nobody signed in AND no waiting sign-up -> go to Sign In and STOP
+        if (uid == null) {
             goToSignIn();
             return;
         }
@@ -138,51 +151,105 @@ public class ProfileActivity extends AppCompatActivity {
 
         // The email comes from Firebase Auth, so it can be shown immediately.
         // The layout now holds the label ("Email"), so we set ONLY the value here.
-        txtViewProfileEmail.setText(orDash(user.getEmail()));
+        // (A waiting sign-up has no Firebase email yet: loadLocalProfile fills it in.)
+        email = user != null ? user.getEmail() : null;
+        txtViewProfileEmail.setText(orDash(email));
 
         // Nothing to change or print until the profile has loaded
         btnChange.setEnabled(false);
         btnPrintSummary.setEnabled(false);
 
-        listenToProfile();
+        loadLocalProfile();   // NEW: show the saved copy instantly, even with no internet
+        if (!provisional) {
+            listenToProfile();    // keeps that copy in step with the server (needs a real account)
+        }
 
         btnChange.setOnClickListener(v -> showEditDialog());
         btnPrintSummary.setOnClickListener(v -> printSummary());
+        if (provisional) {
+            btnSignOut.setText("Cancel registration");   // there is no account to sign out of yet
+        }
         btnSignOut.setOnClickListener(v -> signOut());
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        DataChangeNotifier.register(dataListener);   // NEW
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        DataChangeNotifier.unregister(dataListener); // NEW
+    }
+
     /**
-     * Live connection to users/{uid}. The lambda runs once with the current data and again
-     * on every change, which is why the screen updates by itself after an edit.
+     * NEW: reads the profile from the LOCAL database and paints it. This is now the ONLY thing
+     * that fills the screen. Server -> local database -> screen.
+     */
+    private void loadLocalProfile() {
+        DbExecutor.async(() -> ProfileRepository.get(getApplicationContext(), uid), p -> {
+            if (p == null || isFinishing() || isDestroyed()) {
+                return;
+            }
+            currentFullName = p.fullName;
+            currentIdNumber = p.idNumber;
+            currentRegNo = p.registrationNo;
+            currentGender = p.gender;
+            currentCourse = p.course;
+            currentDepartment = p.department;
+            if (provisional && p.email != null && !p.email.isEmpty()) {
+                email = p.email;
+                txtViewProfileEmail.setText(orDash(email));
+            }
+
+            displayProfile();
+            btnChange.setEnabled(true);         // safe to edit now
+            btnPrintSummary.setEnabled(true);   // and safe to print
+        });
+    }
+
+    /**
+     * CHANGED: live connection to users/{uid}. It no longer paints the screen; it COPIES each
+     * snapshot into the local database, and the notifier then makes loadLocalProfile() repaint.
+     * While the student has an unsent edit, saveFromServer() leaves it alone (local edits win
+     * until delivered).
      */
     private void listenToProfile() {
-        profileListener = db.collection("users").document(user.getUid())
+        profileListener = db.collection("users").document(uid)
                 .addSnapshotListener(this, (doc, error) -> {
                     if (error != null) {
                         // Log the real reason (e.g. PERMISSION_DENIED) for Logcat
                         Log.e("ProfileActivity", "Profile listener failed", error);
-                        txtViewProfileName.setText(R.string.profile_load_failed);
-                        Toast.makeText(ProfileActivity.this,
-                                "Could not load your profile. Check your connection.",
-                                Toast.LENGTH_LONG).show();
+                        // Offline is normal now. Only complain if there is nothing to show.
+                        if (currentFullName == null && currentRegNo == null) {
+                            txtViewProfileName.setText(R.string.profile_load_failed);
+                            Toast.makeText(ProfileActivity.this,
+                                    "Could not load your profile. Connect to the internet once "
+                                            + "so it can be saved on this phone.",
+                                    Toast.LENGTH_LONG).show();
+                        }
                         return;
                     }
 
                     if (doc == null || !doc.exists()) {
-                        txtViewProfileName.setText(R.string.profile_not_found);
+                        // Offline with nothing cached also looks like "missing": only claim
+                        // "not found" when the SERVER said so.
+                        if (doc != null && !doc.getMetadata().isFromCache() && currentFullName == null) {
+                            txtViewProfileName.setText(R.string.profile_not_found);
+                        }
                         return;
                     }
 
-                    currentFullName = doc.getString("fullName");
-                    currentIdNumber = doc.getString("idNumber");
-                    currentRegNo = doc.getString("registrationNo");
-                    currentGender = doc.getString("gender");
-                    currentCourse = doc.getString("course");
-                    currentDepartment = doc.getString("department");
-
-                    displayProfile();
-                    btnChange.setEnabled(true);         // safe to edit now
-                    btnPrintSummary.setEnabled(true);   // and safe to print
+                    try {
+                        ProfileRepository.LocalProfile copy =
+                                ProfileRepository.fromSnapshot(uid, doc);
+                        DbExecutor.run(() ->
+                                ProfileRepository.saveFromServer(getApplicationContext(), copy));
+                    } catch (RuntimeException e) {
+                        Log.e("ProfileActivity", "Profile document has a wrongly typed field", e);
+                    }
                 });
     }
 
@@ -252,7 +319,7 @@ public class ProfileActivity extends AppCompatActivity {
                 .append("</p>");
 
         html.append("<table>");
-        appendRow(html, R.string.profile_label_email, user.getEmail());
+        appendRow(html, R.string.profile_label_email, email);
         appendRow(html, R.string.profile_label_reg_no, currentRegNo);
         appendRow(html, R.string.profile_label_id_number, currentIdNumber);
         appendRow(html, R.string.profile_label_gender, currentGender);
@@ -321,12 +388,7 @@ public class ProfileActivity extends AppCompatActivity {
                 return;   // dialog stays open so the user can fix the problem
             }
 
-            if (!isOnline()) {
-                Toast.makeText(this,
-                        "No internet connection. Saving changes needs internet.",
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
+            // CHANGED: the online check is gone. Offline edits are now saved on the phone.
 
             String gender = dlgGenderGroup.getCheckedRadioButtonId() == R.id.dlgMale
                     ? "Male" : "Female";
@@ -382,34 +444,28 @@ public class ProfileActivity extends AppCompatActivity {
 
         // The email is NOT here: it belongs to Firebase Auth, not to this profile document.
         // "registrationStatus" is not here either: the rules only let the admin side change it.
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("fullName", fullName);
-        updates.put("idNumber", idNumber);
-        updates.put("registrationNo", regNo);
-        updates.put("gender", gender);
-        updates.put("course", course);              // NEW: allowed by the rules' update list
-        updates.put("department", department);
+        ProfileRepository.LocalProfile edit = new ProfileRepository.LocalProfile();
+        edit.uid = uid;
+        edit.email = email;
+        edit.fullName = fullName;
+        edit.idNumber = idNumber;
+        edit.registrationNo = regNo;
+        edit.gender = gender;
+        edit.course = course;
+        edit.department = department;
 
-        updates.put("updatedAt", FieldValue.serverTimestamp());
+        // CHANGED: save on the phone first. SyncWorker sends it to Firestore (a merge, so email
+        // and createdAt stay untouched) as soon as there is internet.
+        DbExecutor.async(() -> {
+            ProfileRepository.saveLocalEdit(getApplicationContext(), edit);
+            return Boolean.TRUE;
+        }, saved -> Toast.makeText(getApplicationContext(),
+                saved == null
+                        ? "Could not save changes. Your details were not updated."
+                        : "Details saved. They are sent to the server automatically.",
+                saved == null ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show());
 
-        // merge: change ONLY these fields and leave the rest (email, createdAt) untouched
-        db.collection("users").document(user.getUid())
-                .set(updates, SetOptions.merge())
-                // Fires when the server CONFIRMS the write (can lag on a slow connection)
-                .addOnSuccessListener(this, unused ->
-                        Toast.makeText(ProfileActivity.this,
-                                "Details updated", Toast.LENGTH_SHORT).show())
-                // If the server rejects the write, Firestore also rolls the screen back
-                .addOnFailureListener(this, e -> {
-                    // The user sees a friendly message, YOU see the real reason in Logcat
-                    Log.e("ProfileActivity", "Save failed", e);
-                    Toast.makeText(ProfileActivity.this,
-                            "Could not save changes. Your details were not updated.",
-                            Toast.LENGTH_LONG).show();
-                });
-
-        // Closing right away is fine: the snapshot listener shows the new values instantly
-        // from Firestore's local cache, before the server has even replied.
+        // Closing right away is fine: the notifier repaints the screen from the local copy
         dialog.dismiss();
     }
 
@@ -440,13 +496,62 @@ public class ProfileActivity extends AppCompatActivity {
     //  SIGN OUT / HELPERS
     // =====================================================================
 
+    /**
+     * CHANGED: warns first if something saved on this phone has not reached the server.
+     * Unsent items are KEPT and are delivered the next time this student signs in while online.
+     *
+     * For a student whose sign-up is still waiting there is no account to sign out of, so the
+     * same button becomes "Cancel registration": it throws the waiting sign-up away.
+     */
     private void signOut() {
+        if (provisional) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Cancel registration?")
+                    .setMessage("Your account has not been created yet. If you cancel, your saved "
+                            + "registration and everything you saved offline will be discarded.")
+                    .setNegativeButton("Keep waiting", null)
+                    .setPositiveButton("Cancel registration", (d, which) -> cancelRegistration())
+                    .show();
+            return;
+        }
+        DbExecutor.async(() -> Outbox.countFor(getApplicationContext(), uid), count -> {
+            if (isFinishing() || isDestroyed()) {
+                return;
+            }
+            if (count != null && count > 0) {
+                new MaterialAlertDialogBuilder(this)
+                        .setTitle("Unsent changes")
+                        .setMessage(count + " item(s) saved on this phone have not reached the "
+                                + "server yet. If you sign out now they will be sent the next time "
+                                + "you sign in while online. Sign out anyway?")
+                        .setNegativeButton(R.string.btn_cancel, null)
+                        .setPositiveButton("Sign out", (d, which) -> performSignOut())
+                        .show();
+            } else {
+                performSignOut();
+            }
+        });
+    }
+
+    private void performSignOut() {
         // Stop listening FIRST: once signed out, the rules would reject this read
         if (profileListener != null) {
             profileListener.remove();
         }
+        // Privacy mop-up: forget this student's data that the server already has.
+        // (Unsent rows stay, so no work is lost.)
+        DbExecutor.run(() -> AppDatabase.get(getApplicationContext()).clearSyncedFor(uid));
+        SessionUser.clearProvisional(this);   // a leftover marker would bounce Sign In straight back in
         auth.signOut();
         goToSignIn();
+    }
+
+    /** Waits until the saved sign-up is really gone, THEN opens Sign In (which would otherwise bounce back). */
+    private void cancelRegistration() {
+        DbExecutor.async(() -> {
+            SessionUser.discardPendingRegistration(getApplicationContext());
+            return Boolean.TRUE;
+        }, done -> goToSignIn());
     }
 
     private void goToSignIn() {
@@ -460,15 +565,5 @@ public class ProfileActivity extends AppCompatActivity {
     /** Shows "-" instead of the word "null" when a field is missing. */
     private String orDash(String value) {
         return (value == null || value.isEmpty()) ? "-" : value;
-    }
-
-    /** Needs the ACCESS_NETWORK_STATE permission in AndroidManifest.xml */
-    private boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        Network network = cm.getActiveNetwork();
-        if (network == null) return false;
-        NetworkCapabilities caps = cm.getNetworkCapabilities(network);
-        return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
     }
 }
