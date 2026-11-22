@@ -1,11 +1,8 @@
 package com.example.mobilescholarschool.LibraryTab;
 
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
-
-import java.util.Map;
 
 /**
  * The ONE place that knows the Firestore collection names for the Library tab.
@@ -15,7 +12,6 @@ import java.util.Map;
 public class LibraryRepository {
 
     private static final String BOOKS = "books";
-    private static final String REQUESTS = "bookRequests";
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
@@ -27,11 +23,6 @@ public class LibraryRepository {
         return db.collection(BOOKS).orderBy("title").get();
     }
 
-    /**
-     * NEW: saves a new book request with an automatic document ID.
-     * The security rules decide whether it is accepted (right fields, own UID, status "pending"...).
-     */
-    public Task<DocumentReference> submitRequest(Map<String, Object> request) {
-        return db.collection(REQUESTS).add(request);
-    }
+    // REMOVED: submitRequest(). Requests are now saved by BookRequestRepository (SQLite) and
+    // delivered to "bookRequests" by SyncWorker, so this class only READS the catalogue.
 }

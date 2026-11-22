@@ -1,5 +1,6 @@
 package com.example.mobilescholarschool.HomeTab;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.transition.AutoTransition;
 import android.transition.TransitionManager;
@@ -20,10 +21,20 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
+import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
+import com.example.mobilescholarschool.Data.DataChangeNotifier;          // NEW
+import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
+import com.example.mobilescholarschool.Data.HostelBookingRepository;     // NEW
+import com.example.mobilescholarschool.Data.ProfileRepository;           // NEW
+import com.example.mobilescholarschool.Data.SyncState;                   // NEW
+import com.example.mobilescholarschool.Sync.SyncScheduler;               // NEW
 import com.example.mobilescholarschool.LibraryTab.BorrowedBooksDialogFragment;
 import com.example.mobilescholarschool.R;
+import com.example.mobilescholarschool.SignUp.SignUpActivity;            // NEW
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.snackbar.Snackbar;                    // NEW
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -75,6 +86,23 @@ public class HomeActivity extends AppCompatActivity {
     private String hostelName, hostelRoom, hostelId;
     private Long hostelCheckInMillis;
     private final Map<String, String> wardenByHostel = new HashMap<>();
+
+    // NEW: a booking saved on this phone that the server does not have yet. The Hostel tab shows
+    // it as "Pending"; without this the Home card would still say "Unbooked".
+    private HostelBookingRepository.Booking unsentHostelBooking;
+
+    // NEW: used only while an offline sign-up is waiting for internet
+    private FirebaseAuth.AuthStateListener accountCreatedListener;
+    private Snackbar waitingBanner;
+
+    // NEW: fires when the local database changes (profile copy, or a booking saved/delivered)
+    private final DataChangeNotifier.Listener dataListener = table -> {
+        if (AppDatabase.T_HOSTEL_BOOKINGS.equals(table)) {
+            loadUnsentHostelBooking();
+        } else if (AppDatabase.T_PROFILE.equals(table)) {
+            loadLocalProfile();
+        }
+    };
 
     // Units card needs TWO sources (the student's registrations and the deadline), so we keep both
     private final List<UnitReg> unitRegs = new ArrayList<>();
@@ -146,14 +174,27 @@ public class HomeActivity extends AppCompatActivity {
         super.onStart();
 
         // Safety net: if nobody is signed in, AuthGuard sends them to the login screen
+        // A student whose offline sign-up is still waiting is let through too (see AuthGuard)
         if (AuthGuard.redirectIfSignedOut(this)) {
             return;
         }
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            showWaitingForAccount();   // NEW: no account yet, only a saved registration
+            return;
+        }
         showWelcome(user);
         listenToProfile(user);
         listenToCards(user.getUid());   // NEW
+
+        // NEW (offline support)
+        DataChangeNotifier.register(dataListener);
+        loadLocalProfile();            // name and student ID appear instantly, even offline
+        loadUnsentHostelBooking();
+        // Home is where every launch lands: deliver anything saved while offline or signed out
+        // (KEEP inside the scheduler prevents duplicate jobs)
+        SyncScheduler.enqueue(this);
     }
 
     /** NEW: stop listening while the screen is hidden (saves battery and data). */
@@ -165,6 +206,95 @@ public class HomeActivity extends AppCompatActivity {
             profileListener = null;
         }
         stopCardListeners();   // NEW
+        DataChangeNotifier.unregister(dataListener);   // NEW
+        if (accountCreatedListener != null) {          // NEW
+            FirebaseAuth.getInstance().removeAuthStateListener(accountCreatedListener);
+            accountCreatedListener = null;
+        }
+        if (waitingBanner != null) {
+            waitingBanner.dismiss();
+            waitingBanner = null;
+        }
+    }
+
+    // ================================================================ waiting for the account (NEW)
+
+    /**
+     * LESSON: a STATE, not a crash. Offline sign-up leaves the phone with a saved registration but
+     * no Firebase user. Fees, loans and units belong to the SERVER and a brand-new account has none
+     * yet, so those three cards say so. Everything the student does meanwhile is saved under the
+     * provisional id, so the hostel card, name and student number work from the local database.
+     *
+     * When SyncWorker creates the account it leaves the student signed in; the AuthStateListener
+     * below notices and recreate() reloads Home as the real thing.
+     */
+    private void showWaitingForAccount() {
+        for (TextView headline : new TextView[]{txtViewBalance, txtViewLibraryUpdates,
+                textViewUnitStatus}) {
+            headline.setText("Not available yet");
+        }
+        for (TextView details : new TextView[]{txtViewFeeDetails, txtViewLibraryDetails,
+                txtViewUnitDetails}) {
+            details.setText("Available once your account has been created.");
+        }
+        txtViewWelcome.setText(getString(R.string.welcome_format, getGreeting(),
+                getString(R.string.default_user_name)));
+
+        // Name, student number and any hostel booking come from the LOCAL database
+        DataChangeNotifier.register(dataListener);
+        loadLocalProfile();
+        loadUnsentHostelBooking();
+
+        showWaitingBanner();
+
+        // The worker signs the new student in when it succeeds: reload Home as the real thing.
+        // (It also fires once straight away with "nobody signed in", which we ignore.)
+        accountCreatedListener = firebaseAuth -> {
+            if (firebaseAuth.getCurrentUser() != null) {
+                recreate();
+            }
+        };
+        FirebaseAuth.getInstance().addAuthStateListener(accountCreatedListener);
+
+        SyncScheduler.enqueue(this);   // make sure the job that creates the account is queued
+    }
+
+    /** Either "will be created automatically" or, if it failed for good, why plus "Start over". */
+    private void showWaitingBanner() {
+        String error = SessionUser.registrationError(this);
+        if (error == null) {
+            waitingBanner = Snackbar.make(findViewById(R.id.main),
+                    "Your account will be created when you are online. You can keep using the app.",
+                    Snackbar.LENGTH_INDEFINITE);
+        } else {
+            waitingBanner = Snackbar.make(findViewById(R.id.main),
+                            error + " Start over to register again (items saved offline are discarded).",
+                            Snackbar.LENGTH_INDEFINITE)
+                    .setAction("Start over", v -> startOver());
+        }
+        waitingBanner.setAnchorView(findViewById(R.id.bottomNav));   // sit above the tab bar
+        waitingBanner.show();
+    }
+
+    /** Abandons the waiting registration and returns to the sign-up form. */
+    private void startOver() {
+        DbExecutor.async(() -> {
+            SessionUser.discardPendingRegistration(getApplicationContext());
+            return Boolean.TRUE;
+        }, done -> {
+            // Only AFTER the saved registration is gone, otherwise Sign In would send us straight back
+            Intent intent = new Intent(this, SignUpActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        });
+    }
+
+    /** The greeting for a student who has no Firebase user yet. */
+    private void showWelcomeForWaiting() {
+        String name = profileName != null && !profileName.trim().isEmpty()
+                ? profileName : getString(R.string.default_user_name);
+        txtViewWelcome.setText(getString(R.string.welcome_format, getGreeting(), name));
     }
 
     /** refreshes the greeting, because "Good morning" can change to
@@ -204,6 +334,12 @@ public class HomeActivity extends AppCompatActivity {
                         return;
                     }
 
+                    // NEW. LESSON: offline with nothing cached, Firestore says "document does not
+                    // exist". That only means "not on this phone", so do not wipe what we show.
+                    if (doc != null && !doc.exists() && doc.getMetadata().isFromCache()) {
+                        return;
+                    }
+
                     if (doc == null || !doc.exists()) {
                         profileName = null;
                         studentId = null;
@@ -216,9 +352,73 @@ public class HomeActivity extends AppCompatActivity {
                     profileName = doc.getString("fullName");
                     studentId = doc.getString("registrationNo");
 
+                    // NEW: keep the local copy fresh (other screens and offline starts use it)
+                    try {
+                        ProfileRepository.LocalProfile copy =
+                                ProfileRepository.fromSnapshot(user.getUid(), doc);
+                        DbExecutor.run(() ->
+                                ProfileRepository.saveFromServer(getApplicationContext(), copy));
+                    } catch (RuntimeException e) {
+                        Log.e("HomeActivity", "Profile document has a wrongly typed field", e);
+                    }
+
                     showWelcome(user);
                     showStudentId();
                 });
+    }
+
+    // ================================================================ local database (NEW)
+
+    /** Fills the greeting and student ID from the LOCAL copy, but never over fresher server data. */
+    private void loadLocalProfile() {
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
+        if (uid == null) {
+            return;
+        }
+        DbExecutor.async(() -> ProfileRepository.get(getApplicationContext(), uid), p -> {
+            if (p == null || isFinishing() || isDestroyed()) {
+                return;
+            }
+            boolean changed = false;
+            if (p.fullName != null && !p.fullName.trim().isEmpty()) {
+                profileName = p.fullName;
+                changed = true;
+            }
+            if (p.registrationNo != null && !p.registrationNo.trim().isEmpty()) {
+                studentId = p.registrationNo;
+                changed = true;
+            }
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (changed) {
+                if (user != null) {
+                    showWelcome(user);
+                } else {
+                    showWelcomeForWaiting();   // no Firebase user yet: use the saved name
+                }
+                showStudentId();
+            }
+        });
+    }
+
+    /** Finds a booking that is saved on the phone but not yet on the server (null if none). */
+    private void loadUnsentHostelBooking() {
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
+        if (uid == null) {
+            return;
+        }
+        DbExecutor.async(() -> HostelBookingRepository.listFor(getApplicationContext(), uid), list -> {
+            if (list == null || isFinishing() || isDestroyed()) {
+                return;
+            }
+            unsentHostelBooking = null;
+            for (HostelBookingRepository.Booking b : list) {   // newest first, unsent on top
+                if (SyncState.PENDING_SYNC.equals(b.syncState)) {
+                    unsentHostelBooking = b;
+                    break;
+                }
+            }
+            renderHostel();
+        });
     }
 
     /**
@@ -488,6 +688,16 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void renderHostel() {
+        // NEW: an unsent booking is the student's newest action, so it wins over what the server
+        // last told us. It is always "pending" and has no room or check-in yet.
+        if (unsentHostelBooking != null) {
+            txtViewBookedStatus.setText(hostelHeadline("pending"));
+            txtViewHostelDetails.setText(hostelDetails("pending", unsentHostelBooking.hostelName,
+                    "", "", "")
+                    + "\nSaved on this phone: it is sent when you are online.");
+            return;
+        }
+
         String warden = hostelId == null ? "" : wardenByHostel.get(hostelId.trim());
         String checkIn = hostelCheckInMillis == null ? "" : formatDate(hostelCheckInMillis);
         txtViewBookedStatus.setText(hostelHeadline(hostelStatus));

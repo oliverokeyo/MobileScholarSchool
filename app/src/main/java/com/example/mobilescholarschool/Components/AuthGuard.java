@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 
 import com.example.mobilescholarschool.SignIn.SignInActivity;
-import com.google.firebase.auth.FirebaseAuth;
 
 /**
  * NEW: One reusable "bouncer" for every screen that needs a signed-in user.
@@ -28,7 +27,9 @@ public final class AuthGuard {
      *         false if someone is signed in and the screen can carry on normally.
      */
     public static boolean redirectIfSignedOut(Activity activity) {
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+        // CHANGED: a student whose offline sign-up is still waiting also counts as "in".
+        // Every screen now works with SessionUser.uid(), which is the real uid OR the provisional id.
+        if (SessionUser.hasSession(activity)) {
             return false;
         }
 
