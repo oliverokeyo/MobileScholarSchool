@@ -25,17 +25,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.work.BackoffPolicy;                                   // NEW
-import androidx.work.Constraints;                                     // NEW
-import androidx.work.ExistingWorkPolicy;                              // NEW
-import androidx.work.NetworkType;                                     // NEW
-import androidx.work.OneTimeWorkRequest;                              // NEW
-import androidx.work.WorkManager;                                     // NEW
 
+import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
+import com.example.mobilescholarschool.Data.DbExecutor;                         // NEW
+import com.example.mobilescholarschool.Data.ProfileRepository;                  // NEW
+import com.example.mobilescholarschool.HomeTab.HomeActivity;                 // NEW
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.Components.PasswordToggle;
 import com.example.mobilescholarschool.Components.PendingRegistrationStore;   // NEW
 import com.example.mobilescholarschool.SignIn.SignInActivity;
+import com.example.mobilescholarschool.Sync.SyncScheduler;                    // CHANGED: one shared scheduler
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseNetworkException;
@@ -50,7 +49,6 @@ import org.json.JSONObject;                                           // NEW
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;                                 // NEW
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -159,7 +157,7 @@ public class SignUpActivity extends AppCompatActivity {
     }
 
     // NEW: the "drop box". Saves the form encrypted on the device, then asks WorkManager
-    // to run RegistrationSyncWorker as soon as the phone has an internet connection.
+    // to run SyncWorker (via SyncScheduler) as soon as the phone has an internet connection.
     private void queueForLater(String fullName, String idNumber, String registrationNo,
                                String email, String password,
                                String gender, String department, String course) {
@@ -173,24 +171,39 @@ public class SignUpActivity extends AppCompatActivity {
             data.put("gender", gender);
             data.put("department", department);
             data.put("course", course);
+
+            // NEW: the PROVISIONAL id. Everything this student does before the account exists is
+            // saved under it; SyncWorker swaps it for the real uid once the account is created.
+            // It goes INTO the saved registration so the worker can find it even if the app
+            // is killed and restarted.
+            String localUid = SessionUser.newProvisionalUid();
+            data.put("localUid", localUid);
             PendingRegistrationStore.save(this, data);
+            SessionUser.setProvisional(this, localUid);   // only AFTER the registration is saved
 
-            Constraints needsInternet = new Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED).build();
+            // NEW: a local copy of the profile, so Profile, Library and Hostel have the student's
+            // name and student number straight away. (It is "synced" because there is nothing
+            // to send yet: the registration itself creates the server profile.)
+            ProfileRepository.LocalProfile copy = new ProfileRepository.LocalProfile();
+            copy.uid = localUid;
+            copy.fullName = fullName;
+            copy.idNumber = idNumber;
+            copy.registrationNo = registrationNo;
+            copy.email = email;
+            copy.gender = gender;
+            copy.department = department;
+            copy.course = course;
+            DbExecutor.run(() -> ProfileRepository.saveFromServer(getApplicationContext(), copy));
 
-            OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(RegistrationSyncWorker.class)
-                    .setConstraints(needsInternet)
-                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
-                    .build();
-
-            // KEEP = if a sync is already queued, don't stack a second one
-            WorkManager.getInstance(this)
-                    .enqueueUniqueWork("registration_sync", ExistingWorkPolicy.KEEP, work);
+            // CHANGED: the 10 lines of WorkManager setup that used to be here now live in ONE
+            // place (SyncScheduler), shared by every screen. SyncWorker finishes the sign-up.
+            SyncScheduler.enqueue(this);
 
             Toast.makeText(this,
                     "Saved! Your account will be created when you're back online.",
                     Toast.LENGTH_LONG).show();
-            goToSignIn();
+            // CHANGED: open Home (in its "waiting for internet" mode) instead of Sign In
+            goToHome();
         } catch (Exception e) {
             Log.e("SignUpActivity", "Could not queue registration", e);
             Toast.makeText(this, "Could not save your details. Please try again.",
@@ -346,12 +359,12 @@ public class SignUpActivity extends AppCompatActivity {
                                 return;
                             }
                             Toast.makeText(SignUpActivity.this,
-                                    "Account created successfully. Please sign in.",
+                                    "Account created successfully. Welcome!",
                                     Toast.LENGTH_LONG).show();
-                            // Firebase signs the new user in automatically; sign out so
-                            // they log in themselves on the Sign In screen
-                            mAuth.signOut();
-                            goToSignIn();
+                            // CHANGED: Firebase has already signed the new user in, so we keep
+                            // that session and open Home (it used to sign out and ask them to
+                            // log in again).
+                            goToHome();
                         } else {
                             Log.e("SignUpActivity", "Profile save failed", task.getException());
 
@@ -411,6 +424,18 @@ public class SignUpActivity extends AppCompatActivity {
             message = "Account creation failed. Please try again.";
         }
         Toast.makeText(SignUpActivity.this, message, Toast.LENGTH_LONG).show();
+    }
+
+    /**
+     * NEW: opens Home and clears the back stack, so Back cannot return to the sign-up form.
+     * Online: the student is signed in and sees the real Home.
+     * Offline: there is no account yet, so Home shows a waiting state (see HomeActivity).
+     */
+    private void goToHome() {
+        Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void goToSignIn() {

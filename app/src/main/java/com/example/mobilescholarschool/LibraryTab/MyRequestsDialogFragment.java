@@ -14,6 +14,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
+import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
+import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
+import com.example.mobilescholarschool.Data.BookRequestRepository;       // NEW
+import com.example.mobilescholarschool.Data.DataChangeNotifier;          // NEW
+import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
+import com.example.mobilescholarschool.Data.SyncState;                   // NEW
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.Timestamp;
@@ -60,8 +66,19 @@ public class MyRequestsDialogFragment extends DialogFragment {
     private LinearLayout list;
     private int selectedTab = 0;
 
-    private final List<RequestRow> requests = new ArrayList<>();
+    // CHANGED: what is on screen = requests the SERVER has + requests saved only on this PHONE
+    private final List<RequestRow> requests = new ArrayList<>();        // the merged list that is drawn
+    private final List<RequestRow> serverRows = new ArrayList<>();      // from Firestore
+    private final List<RequestRow> localRows = new ArrayList<>();       // from SQLite (unsent / refused)
+    private boolean localLoaded = false;  // NEW: true once SQLite has answered
     private boolean loaded = false;       // true once Firestore has answered at least once
+
+    // NEW: redraw when a request is saved, delivered or refused while the dialog is open
+    private final DataChangeNotifier.Listener dataListener = table -> {
+        if (AppDatabase.T_BOOK_REQUESTS.equals(table)) {
+            loadLocalRows();
+        }
+    };
     private boolean loadFailed = false;
     private ListenerRegistration listener;
 
@@ -151,6 +168,8 @@ public class MyRequestsDialogFragment extends DialogFragment {
     public void onStart() {
         super.onStart();
         attachListener();
+        DataChangeNotifier.register(dataListener);   // NEW
+        loadLocalRows();                             // NEW
     }
 
     // ...and stops when it is hidden or closed, so it never leaks.
@@ -158,6 +177,7 @@ public class MyRequestsDialogFragment extends DialogFragment {
     public void onStop() {
         super.onStop();
         detachListener();
+        DataChangeNotifier.unregister(dataListener);   // NEW
     }
 
     private void attachListener() {
@@ -194,19 +214,69 @@ public class MyRequestsDialogFragment extends DialogFragment {
             // (PERMISSION_DENIED means the "bookRequests" read rule is not published yet).
             Log.e(TAG, "Requests listener failed", error);
             loadFailed = true;
-            render();
+            mergeAndRender();   // CHANGED: still show what is saved on the phone
             return;
         }
 
         loadFailed = false;
         loaded = true;
-        requests.clear();
+        serverRows.clear();
         for (DocumentSnapshot doc : snap.getDocuments()) {
             RequestRow row = RequestRow.from(doc);
             if (row != null) {
-                requests.add(row);
+                serverRows.add(row);
             }
         }
+        mergeAndRender();
+    }
+
+    // ================================================================ NEW: the local database
+
+    /** Reads this student's unsent and refused requests from SQLite. */
+    private void loadLocalRows() {
+        if (getContext() == null) {
+            return;
+        }
+        android.content.Context appContext = requireContext().getApplicationContext();
+        String uid = SessionUser.uid(appContext);   // real uid OR provisional id
+        if (uid == null) {
+            return;
+        }
+        DbExecutor.async(() -> BookRequestRepository.listUnsent(appContext, uid), saved -> {
+            if (saved == null || !isAdded() || list == null) {
+                return;
+            }
+            localRows.clear();
+            for (BookRequestRepository.Request r : saved) {
+                localRows.add(RequestRow.fromLocal(r));
+            }
+            localLoaded = true;
+            mergeAndRender();
+        });
+    }
+
+    /**
+     * LESSON: MERGING TWO SOURCES. A request is in exactly one of two places: only on the phone
+     * (waiting or refused), or on the server. The worker uses the SAME id in both, so if a
+     * request is in both for a moment (sent, but not yet marked as sent) we drop the phone's
+     * copy and show the server's.
+     */
+    private void mergeAndRender() {
+        requests.clear();
+        requests.addAll(serverRows);
+        for (RequestRow local : localRows) {
+            boolean serverHasIt = false;
+            for (RequestRow server : serverRows) {
+                if (local.id != null && local.id.equals(server.id)) {
+                    serverHasIt = true;
+                    break;
+                }
+            }
+            if (!serverHasIt) {
+                requests.add(local);
+            }
+        }
+        // Unsent rows have no createdAt, so they sort first (newest)
         Collections.sort(requests, (a, b) -> newestFirst(a.createdAt, b.createdAt));
         render();
     }
@@ -238,7 +308,9 @@ public class MyRequestsDialogFragment extends DialogFragment {
 
         list.removeAllViews();
 
-        if (!loaded) {
+        // CHANGED: "ready" once EITHER source has answered, so offline the saved requests still show
+        boolean ready = loaded || localLoaded;
+        if (!ready) {
             addMessage(loadFailed ? "Could not load your requests. Check your connection."
                     : "Loading…");
             return;
@@ -266,7 +338,7 @@ public class MyRequestsDialogFragment extends DialogFragment {
         TabLayout.Tab tab = tabs.getTabAt(index);
         if (tab != null) {
             // Until the first answer arrives we don't know the counts, so show only the name
-            tab.setText(loaded ? TAB_NAMES[index] + " (" + count + ")" : TAB_NAMES[index]);
+            tab.setText((loaded || localLoaded) ? TAB_NAMES[index] + " (" + count + ")" : TAB_NAMES[index]);
         }
     }
 
@@ -278,8 +350,9 @@ public class MyRequestsDialogFragment extends DialogFragment {
 
         addLine(box, makeText(headingOf(row.title, row.author, row.isbn), 16, true, 0), 0);
 
-        // "(sending…)" = saved on the phone but the server has not confirmed it yet
-        String statusLine = "● " + statusLabel(row.status) + (row.pendingWrite ? "  (sending…)" : "");
+        // CHANGED: the phone's own record of "not on the server yet" replaces hasPendingWrites
+        String statusLine = "● " + (row.notSent ? "NOT SENT" : statusLabel(row.status))
+                + (row.waitingToSend ? "  (waiting to send…)" : row.pendingWrite ? "  (sending…)" : "");
         addLine(box, makeText(statusLine, 13, true, colorOf(row.status)), 2);
 
         addLine(box, makeText("Borrow: " + formatDate(row.borrowDate)
@@ -292,7 +365,8 @@ public class MyRequestsDialogFragment extends DialogFragment {
 
         // Filled in by the librarian later (for example why a request was rejected)
         if (row.adminNote != null && !row.adminNote.trim().isEmpty()) {
-            addLine(box, makeText("Librarian note: " + row.adminNote.trim(), 14, false, 0), 6);
+            addLine(box, makeText((row.notSent ? "Reason: " : "Librarian note: ")
+                    + row.adminNote.trim(), 14, false, 0), 6);
         }
         return box;
     }
@@ -339,15 +413,39 @@ public class MyRequestsDialogFragment extends DialogFragment {
 
     /** A small copy of the fields we show, so the screen never touches raw Firestore documents. */
     private static class RequestRow {
+        String id;                         // NEW: the document id (= the local id), used to merge
         String isbn, title, author, status, adminNote;
         Timestamp borrowDate, returnDate, createdAt;
         boolean pendingWrite;
+        boolean waitingToSend;             // NEW: saved on the phone, not sent yet
+        boolean notSent;                   // NEW: the server refused it
+
+        /** NEW: a row that exists only in the phone's database. createdAt stays null so it sorts first. */
+        static RequestRow fromLocal(BookRequestRepository.Request r) {
+            RequestRow row = new RequestRow();
+            row.id = r.localId;
+            row.isbn = r.isbn;
+            row.title = r.bookTitle;
+            row.author = r.author;
+            row.borrowDate = new Timestamp(new Date(r.borrowMillis));
+            row.returnDate = new Timestamp(new Date(r.returnMillis));
+            if (SyncState.FAILED.equals(r.syncState)) {
+                row.status = STATUS_REJECTED;   // so it appears under the "Rejected" tab
+                row.notSent = true;
+                row.adminNote = r.syncError;
+            } else {
+                row.status = STATUS_PENDING;
+                row.waitingToSend = true;
+            }
+            return row;
+        }
 
         static RequestRow from(DocumentSnapshot doc) {
             // One badly typed document (for example "status" saved as a number) must not crash
             // the whole dialog, so each document gets its own safety net.
             try {
                 RequestRow row = new RequestRow();
+                row.id = doc.getId();
                 row.isbn = doc.getString("isbn");
                 row.title = doc.getString("bookTitle");
                 row.author = doc.getString("author");

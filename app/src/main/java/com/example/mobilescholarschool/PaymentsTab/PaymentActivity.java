@@ -16,11 +16,14 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.ConnectivityHelper;           // NEW
+import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
+import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
+import com.example.mobilescholarschool.Data.ProfileRepository;           // NEW
 import com.example.mobilescholarschool.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.regex.Pattern;
@@ -104,28 +107,55 @@ public class PaymentActivity extends AppCompatActivity {
     // Student number
     // ------------------------------------------------------------------
 
-    /** Reads users/{uid} once and copies registrationNo into the student number box. */
+    /**
+     * CHANGED: asks the LOCAL database first (instant, works offline), and only falls back to
+     * Firestore when this phone has no saved copy yet.
+     *
+     * NOTE: paying itself stays ONLINE-ONLY. An M-PESA prompt is a live conversation with the
+     * phone network, so queuing it for later would charge the student at a surprise moment.
+     */
     private void prefillStudentNumber() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) {
+        String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
+        if (uid == null) {
             return; // AuthGuard already handles signed-out users; this just avoids a crash
         }
 
+        DbExecutor.async(() -> ProfileRepository.get(getApplicationContext(), uid), local -> {
+            if (isFinishing() || isDestroyed()) {
+                return;
+            }
+            if (local != null && local.registrationNo != null && !local.registrationNo.trim().isEmpty()) {
+                fillStudentNumber(local.registrationNo);
+            } else {
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                if (user != null) {
+                    prefillFromServer(user);   // a waiting sign-up has no server profile to ask
+                }
+            }
+        });
+    }
+
+    /** The original Firestore read, now only the fallback. */
+    private void prefillFromServer(FirebaseUser user) {
         FirebaseFirestore.getInstance()
                 .collection(COLLECTION_USERS)
                 .document(user.getUid())
                 .get()
-                .addOnSuccessListener(this, this::fillStudentNumber)
+                .addOnSuccessListener(this, doc -> {
+                    String regNo = doc.getString(FIELD_REGISTRATION_NO);
+                    if (regNo != null) {
+                        fillStudentNumber(regNo);
+                    }
+                })
                 // Failing quietly is fine here: the student can simply type the number
                 .addOnFailureListener(this, e ->
                         Log.e(TAG, "Could not prefill student number", e));
     }
 
-    private void fillStudentNumber(@NonNull DocumentSnapshot doc) {
-        String regNo = doc.getString(FIELD_REGISTRATION_NO);
+    private void fillStudentNumber(@NonNull String regNo) {
         // Don't overwrite anything the student already typed while we were loading
         boolean boxIsEmpty = editStudentNo.getText().toString().trim().isEmpty();
-        if (regNo != null && boxIsEmpty) {
+        if (boxIsEmpty) {
             editStudentNo.setText(regNo);
         }
     }
@@ -135,6 +165,17 @@ public class PaymentActivity extends AppCompatActivity {
     // ------------------------------------------------------------------
 
     private void onPayClicked() {
+        // Paying is a live conversation with M-PESA, so unlike everything else it is NOT saved for
+        // later. Say why, instead of failing in a confusing way.
+        if (!SessionUser.isSignedIn()) {
+            Toast.makeText(this, "Payments need your account. Please wait until it has been created.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!ConnectivityHelper.isOnline(this)) {
+            Toast.makeText(this, "Payments need an internet connection.", Toast.LENGTH_LONG).show();
+            return;
+        }
         if (!inputsAreComplete()) {
             return;
         }
