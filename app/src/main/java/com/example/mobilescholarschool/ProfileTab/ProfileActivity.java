@@ -20,11 +20,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.mobilescholarschool.Components.BottomNavHelper;
 import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
@@ -34,8 +36,10 @@ import com.example.mobilescholarschool.Data.DataChangeNotifier;          // NEW
 import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
 import com.example.mobilescholarschool.Data.Outbox;                      // NEW
 import com.example.mobilescholarschool.Data.ProfileRepository;           // NEW
+import com.example.mobilescholarschool.PaymentsTab.PaymentsViewModel;    // NEW: the payments data
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignIn.SignInActivity;
+import com.google.android.material.card.MaterialCardView;                // NEW
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -65,6 +69,22 @@ public class ProfileActivity extends AppCompatActivity {
         }
     };
 
+    // NEW: the student's payments. This is the SAME object type the Payments tab uses, so the
+    // pill on this screen can never disagree with the pill on that one.
+    private PaymentsViewModel paymentsViewModel;
+
+    // NEW: told whenever the payments change, so the pill switches the moment a payment succeeds.
+    // (A field, so onStop can remove the very same object that onStart added.)
+    private final PaymentsViewModel.Listener paymentsListener = this::refreshRegistrationStatus;
+
+    // NEW: the pill's colours. Same values as the Payments screen's chip.
+    private static final int PILL_NEUTRAL_BG = 0xFFECEFF1;        // checking: calm grey
+    private static final int PILL_NEUTRAL_TEXT = 0xFF455A64;
+    private static final int PILL_UNREGISTERED_BG = 0xFFFFF3E0;   // unregistered: warm orange
+    private static final int PILL_UNREGISTERED_TEXT = 0xFFE65100;
+    private static final int PILL_REGISTERED_BG = 0xFFE8F5E9;     // registered: green
+    private static final int PILL_REGISTERED_TEXT = 0xFF1B5E20;
+
     // Kept in a FIELD (not a local variable) so it can't be garbage collected
     // while the invisible WebView is still rendering the print page.
     WebView printWebView;
@@ -77,6 +97,10 @@ public class ProfileActivity extends AppCompatActivity {
             txtViewProfileGender,
             txtViewProfileCourse,
             txtViewProfileDepartment;
+
+    // NEW: the registration status pill (a card that holds a text, so both can be recoloured)
+    MaterialCardView cardStatus;
+    TextView txtViewRegistrationStatus;
 
     // The latest saved values. They pre-fill the edit dialog and feed the screen.
     String currentFullName, currentIdNumber, currentRegNo, currentGender,
@@ -148,6 +172,8 @@ public class ProfileActivity extends AppCompatActivity {
         txtViewProfileGender = findViewById(R.id.txtViewProfileGender);
         txtViewProfileCourse = findViewById(R.id.txtViewProfileCourse);
         txtViewProfileDepartment = findViewById(R.id.txtViewProfileDepartment);
+        cardStatus = findViewById(R.id.cardStatus);                              // NEW
+        txtViewRegistrationStatus = findViewById(R.id.txtViewRegistrationStatus); // NEW
 
         // The email comes from Firebase Auth, so it can be shown immediately.
         // The layout now holds the label ("Email"), so we set ONLY the value here.
@@ -158,6 +184,8 @@ public class ProfileActivity extends AppCompatActivity {
         // Nothing to change or print until the profile has loaded
         btnChange.setEnabled(false);
         btnPrintSummary.setEnabled(false);
+
+        setupRegistrationStatus();   // NEW: the pill follows the student's payments
 
         loadLocalProfile();   // NEW: show the saved copy instantly, even with no internet
         if (!provisional) {
@@ -176,12 +204,78 @@ public class ProfileActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         DataChangeNotifier.register(dataListener);   // NEW
+        // NEW: only listen to payment changes while the screen is visible. paymentsViewModel is
+        // null when onCreate returned early (signed out), hence the check.
+        if (paymentsViewModel != null) {
+            paymentsViewModel.addListener(paymentsListener);
+            refreshRegistrationStatus();   // catch anything that changed while we were away
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         DataChangeNotifier.unregister(dataListener); // NEW
+        if (paymentsViewModel != null) {
+            paymentsViewModel.removeListener(paymentsListener);
+        }
+    }
+
+    // =====================================================================
+    //  REGISTRATION STATUS PILL (NEW)
+    // =====================================================================
+
+    /** Gets (or re-uses, after a rotation) the payments data and makes sure it is loading. */
+    private void setupRegistrationStatus() {
+        paymentsViewModel = new ViewModelProvider(this).get(PaymentsViewModel.class);
+        if (user != null) {
+            paymentsViewModel.start(user.getUid());   // safe to call again: only the first call works
+        } else {
+            paymentsViewModel.startWithoutAccount();  // a waiting sign-up has no payments on the server
+        }
+        refreshRegistrationStatus();
+    }
+
+    /**
+     * Unregistered before a successful payment, Registered after: exactly what the Payments tab
+     * decides. The grey "Checking..." look exists so we never claim Unregistered just because
+     * the payments have not arrived yet.
+     */
+    private void refreshRegistrationStatus() {
+        if (paymentsViewModel == null) {
+            return;
+        }
+        if (!paymentsViewModel.isRegistrationKnown()) {
+            applyStatusPill(R.string.registration_status_checking, PILL_NEUTRAL_BG, PILL_NEUTRAL_TEXT);
+        } else if (paymentsViewModel.isRegistered()) {
+            applyStatusPill(R.string.registration_status_registered,
+                    PILL_REGISTERED_BG, PILL_REGISTERED_TEXT);
+        } else {
+            applyStatusPill(R.string.registration_status_unregistered,
+                    PILL_UNREGISTERED_BG, PILL_UNREGISTERED_TEXT);
+        }
+    }
+
+    private void applyStatusPill(@StringRes int labelRes, int backgroundColor, int textColor) {
+        // The pill is a MaterialCardView (rounded by its corner radius) holding a TextView, so
+        // the card gets the background colour and the text gets the text colour.
+        cardStatus.setCardBackgroundColor(backgroundColor);
+        txtViewRegistrationStatus.setTextColor(textColor);
+        txtViewRegistrationStatus.setText(
+                getString(R.string.registration_status_format, getString(labelRes)));
+    }
+
+    /** The same words the pill shows ("Registration status: Registered"), for the printed page. */
+    private String registrationStatusText() {
+        @StringRes int labelRes;
+        if (paymentsViewModel == null || !paymentsViewModel.isRegistrationKnown()) {
+            labelRes = R.string.registration_status_checking;
+        } else if (paymentsViewModel.isRegistered()) {
+            labelRes = R.string.registration_status_registered;
+        } else {
+            labelRes = R.string.registration_status_unregistered;
+        }
+        return getString(R.string.registration_status_format, getString(labelRes));
     }
 
     /**
@@ -255,7 +349,8 @@ public class ProfileActivity extends AppCompatActivity {
 
     /**
      * One place that paints the profile; used after loading AND after saving an edit.
-     * (The registration status pill is not here: its text is fixed in activity_profile.xml.)
+     * (The registration status pill is painted by refreshRegistrationStatus(), because it
+     * follows the student's payments rather than their saved details.)
      */
     private void displayProfile() {
         txtViewProfileName.setText(orDash(currentFullName));
@@ -313,9 +408,10 @@ public class ProfileActivity extends AppCompatActivity {
                 .append("</style></head><body>");
 
         html.append("<h1>").append(TextUtils.htmlEncode(orDash(currentFullName))).append("</h1>");
-        // Same placeholder text as the on-screen status pill
+        // CHANGED: the REAL status, the same words as the on-screen pill (it used to print the
+        // placeholder text "{Registered / Unregistered}")
         html.append("<p>")
-                .append(TextUtils.htmlEncode(getString(R.string.registration_status_placeholder)))
+                .append(TextUtils.htmlEncode(registrationStatusText()))
                 .append("</p>");
 
         html.append("<table>");
