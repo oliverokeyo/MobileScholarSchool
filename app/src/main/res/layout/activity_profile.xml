@@ -97,8 +97,9 @@
                         android:textAppearance="@style/TextAppearance.App.Value"
                         tools:text="Felix Lorenzo" />
 
-                    <!-- Status pill. The text is fixed (a placeholder), so it lives
-                         here in the layout and Java never touches it. -->
+                    <!-- Status pill. CHANGED: ProfileActivity now sets BOTH the text and the
+                         colours (grey while checking, orange = Unregistered, green = Registered)
+                         from the student's payments. What is here is only the starting look. -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardStatus"
                         android:layout_width="wrap_content"
@@ -116,7 +117,7 @@
                             android:paddingTop="6dp"
                             android:paddingEnd="@dimen/space_md"
                             android:paddingBottom="6dp"
-                            android:text="@string/registration_status_placeholder"
+                            android:text="@string/registration_status_default"
                             android:textAppearance="@style/TextAppearance.App.Label"
                             android:textSize="12sp" />
                     </com.google.android.material.card.MaterialCardView>

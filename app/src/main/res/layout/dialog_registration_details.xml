@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="@dimen/space_lg">
+
+    <!-- Only shown to students who are not registered yet -->
+    <TextView
+        android:id="@+id/txtRegMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_md"
+        android:text="@string/reg_not_registered"
+        android:textAppearance="@style/TextAppearance.App.Body"
+        android:visibility="gone" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/reg_label_name"
+        android:textAppearance="@style/TextAppearance.App.Label" />
+
+    <TextView
+        android:id="@+id/txtRegName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.App.CardTitle" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        android:text="@string/reg_label_reg_no"
+        android:textAppearance="@style/TextAppearance.App.Label" />
+
+    <TextView
+        android:id="@+id/txtRegNo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.App.CardTitle" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        android:text="@string/reg_label_status"
+        android:textAppearance="@style/TextAppearance.App.Label" />
+
+    <TextView
+        android:id="@+id/txtRegStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.App.CardTitle" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        android:text="@string/reg_label_date"
+        android:textAppearance="@style/TextAppearance.App.Label" />
+
+    <TextView
+        android:id="@+id/txtRegDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.App.CardTitle" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        android:text="@string/reg_label_amount"
+        android:textAppearance="@style/TextAppearance.App.Label" />
+
+    <TextView
+        android:id="@+id/txtRegAmount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.App.CardTitle" />
+
+</LinearLayout>

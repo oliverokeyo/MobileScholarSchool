@@ -93,7 +93,8 @@
     <string name="cd_notifications">Notifications</string>
     <string name="payments_welcome">Manage payments securely through M-PESA.</string>
     <string name="student_id_placeholder">Student ID: --</string>
-    <string name="registration_status_default">Registration status: { Registered / Unregistered }</string>
+    <!-- CHANGED: only seen for a split second (and in the layout preview) before the app fills it in -->
+    <string name="registration_status_default">Registration status: Checking…</string>
     <string name="make_a_payment">Make a Payment</string>
     <string name="label_student_number">Student Number</string>
     <string name="hint_student_number">Enter your student number</string>
@@ -104,12 +105,14 @@
     <string name="btn_continue_pay">Continue &amp; Pay</string>
     <string name="recent_transactions">Recent Transactions</string>
     <string name="transaction_title">School fee payment</string>
-    <string name="transaction_desc">Transaction history and receipts appear here.</string>
+    <!-- CHANGED: the card now opens the history dialog -->
+    <string name="transaction_desc">Tap to see all your school fee payments.</string>
     <string name="cd_receipt_icon">Receipt</string>
     <string name="cd_view_transaction">View transaction history</string>
     <string name="student_registration">Student Registration</string>
     <string name="print_registration_title">Print Registration Details</string>
-    <string name="print_registration_desc">print registration details</string>
+    <!-- CHANGED: the card now opens the registration dialog -->
+    <string name="print_registration_desc">View and print your registration details.</string>
     <string name="cd_print_icon">Print icon</string>
     <string name="cd_print_registration">Print registration details</string>
 
@@ -121,6 +124,59 @@
     <string name="error_amount_invalid">Enter a whole number of 1 or more</string>
     <string name="error_student_no_required">Enter your student number</string>
     <string name="toast_enter_mpesa_pin">Enter your M-PESA PIN</string>
+
+    <!-- NEW: registration status chip -->
+    <string name="registration_status_format">Registration status: %1$s</string>
+    <string name="registration_status_registered">Registered</string>
+    <string name="registration_status_unregistered">Unregistered</string>
+    <string name="registration_status_checking">Checking…</string>
+
+    <!-- NEW: payment messages. Toasts, result dialogs AND the notifications all read these same
+         strings, so the bell always says what the screen said. -->
+    <string name="toast_check_phone">Check your phone and enter your M-PESA PIN.</string>
+    <string name="payment_success_title">Payment successful</string>
+    <string name="payment_success_message">M-PESA confirmed your payment of KSh %1$s.</string>
+    <string name="payment_sandbox_note">(Sandbox: no real money moved.)</string>
+    <string name="payment_cancelled_title">Payment cancelled</string>
+    <string name="payment_cancelled_message">You cancelled the request. Nothing was charged.</string>
+    <string name="payment_failed_title">Payment failed</string>
+    <string name="payment_failed_default">Please try again.</string>
+
+    <!-- NEW: shared button -->
+    <string name="btn_close">Close</string>
+
+    <!-- NEW: transaction history dialog -->
+    <string name="history_title">School fee payments</string>
+    <string name="history_total_format">Total paid: KSh %1$s</string>
+    <string name="history_loading">Loading…</string>
+    <string name="history_empty">No payments yet. Your school fee payments will appear here.</string>
+    <string name="tx_amount_format">KSh %1$s</string>
+    <string name="tx_status_success">Successful</string>
+    <string name="tx_status_pending">Pending</string>
+    <string name="tx_status_cancelled">Cancelled</string>
+    <string name="tx_status_failed">Failed</string>
+    <string name="tx_reference_format">Ref: %1$s</string>
+
+    <!-- NEW: registration details dialog -->
+    <string name="reg_title">Registration details</string>
+    <string name="reg_label_name">Student name</string>
+    <string name="reg_label_reg_no">Registration no.</string>
+    <string name="reg_label_status">Status</string>
+    <string name="reg_label_date">Date registered</string>
+    <string name="reg_label_amount">Amount paid</string>
+    <string name="reg_not_registered">You are not registered yet. Make a successful payment to complete your registration.</string>
+    <string name="reg_not_available">Not available</string>
+    <string name="btn_print">Print</string>
+    <string name="print_job_name">Registration details</string>
+    <string name="print_failed">Could not start printing.</string>
+    <string name="print_printed_on">Printed on %1$s</string>
+
+    <!-- NEW: notifications dialog (the bell) -->
+    <string name="notif_title">Notifications</string>
+    <string name="notif_summary_format">%1$d successful · KSh %2$s paid in total</string>
+    <string name="notif_empty">No notifications yet. Payment updates will appear here.</string>
+    <string name="notif_success_first">M-PESA confirmed your payment of KSh %1$s. You are now registered!</string>
+    <string name="notif_pending_title">Waiting for M-PESA</string>
 
     <!-- Onboarding screen -->
     <string name="onboarding_skip">Skip</string>
