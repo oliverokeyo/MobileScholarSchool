@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;                                // NEW
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
@@ -31,6 +32,7 @@ import com.example.mobilescholarschool.Data.ProfileRepository;           // NEW
 import com.example.mobilescholarschool.Data.SyncState;                   // NEW
 import com.example.mobilescholarschool.Sync.SyncScheduler;               // NEW
 import com.example.mobilescholarschool.LibraryTab.BorrowedBooksDialogFragment;
+import com.example.mobilescholarschool.PaymentsTab.PaymentsViewModel;    // NEW: the student's payments
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignUp.SignUpActivity;            // NEW
 import com.google.android.material.card.MaterialCardView;
@@ -107,7 +109,26 @@ public class HomeActivity extends AppCompatActivity {
     // Units card needs TWO sources (the student's registrations and the deadline), so we keep both
     private final List<UnitReg> unitRegs = new ArrayList<>();
     private boolean unitsLoaded = false;
+    private boolean unitsFailed = false;              // NEW: the unit list could not be read
     private Long registrationDeadlineMillis;
+
+    // NEW: the student's payments. This is the SAME logic the Payments tab uses, so Home can
+    // never disagree with it about who is registered or how much has been paid.
+    private PaymentsViewModel paymentsViewModel;
+
+    // NEW: told whenever the payments change, so both cards redraw the moment a payment goes through.
+    private final PaymentsViewModel.Listener paymentsListener = () -> {
+        renderFees();
+        renderUnits();
+    };
+
+    // NEW: the Fees card now needs TWO sources too: the fee record (billed amount, due date) from
+    // feeAccounts, and the payments that went through. We keep the fee record's parts here.
+    private boolean feeLoaded = false;        // false while loading, or if the record could not be read
+    private boolean feeHasRecord = false;
+    private long feeBilled = 0;
+    private String feeDueText = "Not set";
+    private boolean feePastDue = false;
 
     /**
      * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
@@ -159,6 +180,10 @@ public class HomeActivity extends AppCompatActivity {
         txtViewUnitDetails = findViewById(R.id.txtViewUnitDetails);
         showLoadingCards();
 
+        // NEW: get (or re-use, after a rotation) the payments data. It is STARTED in onStart,
+        // once we know there is a signed-in student to load it for.
+        paymentsViewModel = new ViewModelProvider(this).get(PaymentsViewModel.class);
+
         ImageButton btnNotifications = findViewById(R.id.imgNotifications);
         btnNotifications.setOnClickListener(v ->
                 Toast.makeText(this, R.string.notifications_none, Toast.LENGTH_SHORT).show());
@@ -188,6 +213,13 @@ public class HomeActivity extends AppCompatActivity {
         listenToProfile(user);
         listenToCards(user.getUid());   // NEW
 
+        // NEW: the payments drive the Outstanding Fee and the Unit Registration cards.
+        // start() is safe to call on every onStart: only the first call does any work.
+        paymentsViewModel.start(user.getUid());
+        paymentsViewModel.addListener(paymentsListener);
+        renderFees();    // paint what we already know (we may be returning to this screen)
+        renderUnits();
+
         // NEW (offline support)
         DataChangeNotifier.register(dataListener);
         loadLocalProfile();            // name and student ID appear instantly, even offline
@@ -206,6 +238,7 @@ public class HomeActivity extends AppCompatActivity {
             profileListener = null;
         }
         stopCardListeners();   // NEW
+        paymentsViewModel.removeListener(paymentsListener);   // NEW
         DataChangeNotifier.unregister(dataListener);   // NEW
         if (accountCreatedListener != null) {          // NEW
             FirebaseAuth.getInstance().removeAuthStateListener(accountCreatedListener);
@@ -481,38 +514,39 @@ public class HomeActivity extends AppCompatActivity {
         stopCardListeners();   // never keep two sets of connections open
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        // ---- FEES: ONE document, named after the student's UID (feeAccounts/{uid}) ----
+        // ---- FEES (1 of 2): ONE document, named after the student's UID (feeAccounts/{uid}) ----
+        // CHANGED: this now supplies only what the SCHOOL set: how much was billed and when it is
+        // due. How much has been PAID comes from the student's successful payments (the second
+        // source, see renderFees), so a payment that is pending, failed or cancelled can never
+        // reduce what the student owes.
         cardListeners.add(db.collection("feeAccounts").document(uid)
                 .addSnapshotListener((doc, error) -> {
                     if (error != null) {
                         Log.e(TAG, "Fee listener failed", error);
+                        feeLoaded = false;   // so a later payment update cannot paint over "Unavailable"
                         showUnavailable(txtViewBalance, txtViewFeeDetails);
                         return;
                     }
                     try {
                         Long billedValue = (doc != null && doc.exists()) ? doc.getLong("totalBilled") : null;
-                        boolean hasRecord = billedValue != null;
-                        long billed = hasRecord ? billedValue : 0;
-                        long paid = 0;
-                        String dueText = "Not set";
-                        boolean pastDue = false;
+                        feeHasRecord = billedValue != null;
+                        feeBilled = feeHasRecord ? billedValue : 0;
+                        feeDueText = "Not set";
+                        feePastDue = false;
 
-                        if (hasRecord) {
-                            Long paidValue = doc.getLong("totalPaid");
-                            paid = paidValue == null ? 0 : paidValue;
+                        if (feeHasRecord) {
                             Timestamp due = doc.getTimestamp("dueDate");
                             if (due != null) {
-                                dueText = formatDate(due.toDate().getTime());
-                                pastDue = BorrowedBooksDialogFragment.daysUntil(
+                                feeDueText = formatDate(due.toDate().getTime());
+                                feePastDue = BorrowedBooksDialogFragment.daysUntil(
                                         due.toDate().getTime(), System.currentTimeMillis()) < 0;
                             }
                         }
-                        // The balance is never stored: it is billed minus paid, worked out here,
-                        // so it can never be out of date.
-                        txtViewBalance.setText(feeHeadline(hasRecord, billed, paid));
-                        txtViewFeeDetails.setText(feeDetails(hasRecord, billed, paid, dueText, pastDue));
+                        feeLoaded = true;
+                        renderFees();
                     } catch (RuntimeException e) {
                         Log.e(TAG, "Fee document has a wrongly typed field", e);
+                        feeLoaded = false;
                         showUnavailable(txtViewBalance, txtViewFeeDetails);
                     }
                 }));
@@ -621,7 +655,10 @@ public class HomeActivity extends AppCompatActivity {
                 .addSnapshotListener((snap, error) -> {
                     if (error != null || snap == null) {
                         Log.e(TAG, "Unit registrations listener failed", error);
-                        showUnavailable(textViewUnitStatus, txtViewUnitDetails);
+                        // CHANGED: the headline no longer depends on these rows (it follows the
+                        // payments), so only the DETAILS line reports the problem.
+                        unitsFailed = true;
+                        renderUnits();
                         return;
                     }
                     unitRegs.clear();
@@ -634,6 +671,7 @@ public class HomeActivity extends AppCompatActivity {
                         }
                     }
                     unitsLoaded = true;
+                    unitsFailed = false;
                     renderUnits();
                 }));
 
@@ -705,16 +743,61 @@ public class HomeActivity extends AppCompatActivity {
                 warden == null ? "" : warden));
     }
 
-    private void renderUnits() {
-        if (!unitsLoaded) {
-            return;   // the registrations have not arrived yet: keep showing "Loading…"
+    /**
+     * NEW: paints the Outstanding Fee card from TWO sources:
+     *   billed amount + due date  <- feeAccounts (what the school set)
+     *   paid so far               <- the student's SUCCESSFUL payments (what really went through)
+     * Called when either source changes. The balance is never stored: it is billed minus paid,
+     * worked out here, so it can never be out of date.
+     */
+    private void renderFees() {
+        if (!feeLoaded) {
+            return;   // still loading (or unreadable): keep showing "Loading…" / "Unavailable"
         }
-        UnitSummary summary = summarizeUnits(unitRegs);
+        // getTotalPaid() adds up ONLY payments the server has confirmed as successful: a payment
+        // that is pending, failed or cancelled adds nothing, so it cannot lower the balance.
+        long paid = paymentsViewModel.getTotalPaid();
+
+        txtViewBalance.setText(feeHeadline(feeHasRecord, feeBilled, paid));
+
+        StringBuilder details = new StringBuilder(
+                feeDetails(feeHasRecord, feeBilled, paid, feeDueText, feePastDue));
+        if (feeHasRecord) {
+            details.append("\nOnly payments that went through are counted.");
+            if (!paymentsViewModel.isLoaded()) {
+                // Offline or still connecting: the number above may go down once we hear back.
+                details.append("\nChecking your payments…");
+            }
+        }
+        txtViewFeeDetails.setText(details.toString());
+    }
+
+    /**
+     * CHANGED: the headline now follows the student's PAYMENTS, exactly like the Payments tab and
+     * the Profile screen: Unregistered until a payment goes through, Registered after. The unit
+     * rows (semester, counts, pending approvals) only fill in the DETAILS once registered.
+     */
+    private void renderUnits() {
+        if (!paymentsViewModel.isRegistrationKnown()) {
+            return;   // payments have not arrived yet: keep "Loading…" rather than guess
+        }
+        boolean registered = paymentsViewModel.isRegistered();
         String deadline = registrationDeadlineMillis == null
                 ? "Not set" : formatDate(registrationDeadlineMillis);
-        textViewUnitStatus.setText(unitsHeadline(summary.registered, summary.pending));
-        txtViewUnitDetails.setText(unitsDetails(summary.semester, summary.registered,
-                deadline, summary.pendingCodes));
+
+        textViewUnitStatus.setText(registrationHeadline(registered));
+
+        if (!registered) {
+            txtViewUnitDetails.setText(unitsDetailsUnregistered(deadline));
+        } else if (unitsFailed) {
+            txtViewUnitDetails.setText("Could not load your unit list. Check your connection.");
+        } else if (!unitsLoaded) {
+            txtViewUnitDetails.setText("Loading…");
+        } else {
+            UnitSummary summary = summarizeUnits(unitRegs);
+            txtViewUnitDetails.setText(unitsDetails(summary.semester, summary.registered,
+                    deadline, summary.pendingCodes));
+        }
     }
 
     /** A booking still waiting to reach the server has no createdAt yet, so it counts as the newest. */
@@ -912,10 +995,26 @@ public class HomeActivity extends AppCompatActivity {
         return out;
     }
 
-    /** Registered / Pending / Unregistered. */
+    /**
+     * Registered / Pending / Unregistered, from the unit rows alone.
+     * NOTE: the Home card no longer uses this (its headline follows the payments, see
+     * registrationHeadline). It is kept so anything that already tests it keeps working.
+     */
     public static String unitsHeadline(int registered, int pending) {
         if (registered + pending == 0) return "Unregistered";
         return pending > 0 ? "Pending" : "Registered";
+    }
+
+    /** NEW: the card's headline. Registered once a payment has gone through, Unregistered before. */
+    public static String registrationHeadline(boolean registered) {
+        return registered ? "Registered" : "Unregistered";
+    }
+
+    /** NEW: what the card says while the student has not paid yet (so cannot register for units). */
+    public static String unitsDetailsUnregistered(String deadlineText) {
+        return "You are not registered yet.\n"
+                + "Pay your fees on the Payments tab to register.\n"
+                + "Deadline: " + deadlineText;
     }
 
     public static String unitsDetails(String semester, int registered, String deadlineText,
