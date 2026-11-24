@@ -119,6 +119,11 @@ public class SignUpActivity extends AppCompatActivity {
             }
         });
 
+        // NEW (admin): administrators register on their own screen, with an invite code
+        findViewById(R.id.txtViewAdminSignUp).setOnClickListener(v ->
+                startActivity(new Intent(this,
+                        com.example.mobilescholarschool.Admin.AdminSignUpActivity.class)));
+
         btnSignUp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

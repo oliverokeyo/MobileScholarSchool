@@ -259,14 +259,26 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_md"
-            android:layout_marginBottom="@dimen/space_lg"
             android:padding="@dimen/space_sm"
             android:text="@string/have_account"
             android:textAppearance="@style/TextAppearance.App.Body"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/btnSignUp" />
+
+        <!-- NEW (admin): opens the administrator sign-up (it asks for an invite code) -->
+        <TextView
+            android:id="@+id/txtViewAdminSignUp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_lg"
+            android:padding="@dimen/space_sm"
+            android:text="@string/admin_link_signup"
+            android:textAppearance="@style/TextAppearance.App.Caption"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/txtViewLogin" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>
