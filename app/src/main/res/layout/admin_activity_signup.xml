@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_main"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/admin_signup_title"
+            android:textAppearance="@style/TextAppearance.App.Display" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="20dp"
+            android:text="You need an invite code from the system owner."
+            android:textAppearance="@style/TextAppearance.App.Body" />
+
+        <EditText
+            android:id="@+id/editAdminName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:autofillHints="name"
+            android:hint="@string/hint_full_name"
+            android:inputType="textPersonName|textCapWords"
+            android:maxLines="1" />
+
+        <EditText
+            android:id="@+id/editAdminEmail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:autofillHints="emailAddress"
+            android:hint="@string/hint_email"
+            android:inputType="textEmailAddress"
+            android:maxLines="1" />
+
+        <EditText
+            android:id="@+id/editAdminPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:autofillHints="newPassword"
+            android:hint="@string/hint_password"
+            android:inputType="textPassword"
+            android:maxLines="1" />
+
+        <EditText
+            android:id="@+id/editAdminConfirm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:autofillHints="newPassword"
+            android:hint="@string/hint_confirm_password"
+            android:inputType="textPassword"
+            android:maxLines="1" />
+
+        <EditText
+            android:id="@+id/editAdminInvite"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:autofillHints=""
+            android:hint="@string/admin_hint_invite"
+            android:inputType="textVisiblePassword"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/txtAdminError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textColor="@color/accent_orange"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAdminSignUp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/admin_btn_signup" />
+
+        <TextView
+            android:id="@+id/txtAdminBackToSignIn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="@string/have_account"
+            android:textAppearance="@style/TextAppearance.App.Body" />
+    </LinearLayout>
+</ScrollView>
