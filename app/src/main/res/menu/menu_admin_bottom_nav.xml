@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The admin pill bar. Same idea as menu_bottom_nav: one <item> per tab, icons from drawable. -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/admin_nav_library"
+        android:icon="@drawable/ic_library"
+        android:title="@string/admin_nav_library" />
+    <item
+        android:id="@+id/admin_nav_hostel"
+        android:icon="@drawable/ic_hostel"
+        android:title="@string/admin_nav_hostel" />
+    <item
+        android:id="@+id/admin_nav_payments"
+        android:icon="@drawable/ic_payments"
+        android:title="@string/admin_nav_payments" />
+    <item
+        android:id="@+id/admin_nav_departments"
+        android:icon="@drawable/ic_units"
+        android:title="@string/admin_nav_departments" />
+    <item
+        android:id="@+id/admin_nav_system"
+        android:icon="@drawable/ic_student"
+        android:title="@string/admin_nav_system" />
+</menu>

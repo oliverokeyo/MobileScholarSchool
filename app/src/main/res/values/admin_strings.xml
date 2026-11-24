@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Admin bottom navigation (short, because the active tab shows its label inside the pill) -->
+    <string name="admin_nav_library">Library</string>
+    <string name="admin_nav_hostel">Hostel</string>
+    <string name="admin_nav_payments">Payments</string>
+    <string name="admin_nav_departments">Courses</string>
+    <string name="admin_nav_system">System</string>
+
+    <!-- Screen titles (full names) -->
+    <string name="admin_title_library">Library Management</string>
+    <string name="admin_title_hostel">Hostel Management</string>
+    <string name="admin_title_payments">Payments &amp; Transactions</string>
+    <string name="admin_title_departments">Departments &amp; Courses</string>
+    <string name="admin_title_system">System</string>
+
+    <!-- Admin sign up -->
+    <string name="admin_signup_title">Administrator Sign Up</string>
+    <string name="admin_hint_invite">Admin invite code</string>
+    <string name="admin_btn_signup">Create admin account</string>
+    <string name="admin_link_signup">Register as an administrator</string>
+    <string name="admin_cd_back">Back</string>
+</resources>

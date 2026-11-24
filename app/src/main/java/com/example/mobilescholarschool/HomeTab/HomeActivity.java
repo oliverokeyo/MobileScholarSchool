@@ -14,12 +14,14 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;                                // NEW (admin)
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;                                // NEW
 
+import com.example.mobilescholarschool.Admin.AdminSession;                // NEW (admin)
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
 import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
@@ -36,6 +38,7 @@ import com.example.mobilescholarschool.PaymentsTab.PaymentsViewModel;    // NEW:
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignUp.SignUpActivity;            // NEW
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;    // NEW (admin)
 import com.google.android.material.snackbar.Snackbar;                    // NEW
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -92,6 +95,9 @@ public class HomeActivity extends AppCompatActivity {
     // NEW: a booking saved on this phone that the server does not have yet. The Hostel tab shows
     // it as "Pending"; without this the Home card would still say "Unbooked".
     private HostelBookingRepository.Booking unsentHostelBooking;
+
+    // NEW (admin): the "your account is suspended" dialog, kept so it is never shown twice
+    private AlertDialog accountBlockedDialog;
 
     // NEW: used only while an offline sign-up is waiting for internet
     private FirebaseAuth.AuthStateListener accountCreatedListener;
@@ -209,6 +215,10 @@ public class HomeActivity extends AppCompatActivity {
             showWaitingForAccount();   // NEW: no account yet, only a saved registration
             return;
         }
+        // NEW (admin): an administrator has no student profile, so send them to the admin side.
+        // This is a quick check against admins/{uid}; a student simply stays here.
+        AdminSession.redirectIfAdmin(this);
+
         showWelcome(user);
         listenToProfile(user);
         listenToCards(user.getUid());   // NEW
@@ -238,6 +248,10 @@ public class HomeActivity extends AppCompatActivity {
             profileListener = null;
         }
         stopCardListeners();   // NEW
+        if (accountBlockedDialog != null) {            // NEW (admin)
+            accountBlockedDialog.dismiss();
+            accountBlockedDialog = null;
+        }
         paymentsViewModel.removeListener(paymentsListener);   // NEW
         DataChangeNotifier.unregister(dataListener);   // NEW
         if (accountCreatedListener != null) {          // NEW
@@ -385,6 +399,9 @@ public class HomeActivity extends AppCompatActivity {
                     profileName = doc.getString("fullName");
                     studentId = doc.getString("registrationNo");
 
+                    // NEW (admin): an admin may have suspended or deactivated this account
+                    enforceAccountStatus(doc.getString("accountStatus"));
+
                     // NEW: keep the local copy fresh (other screens and offline starts use it)
                     try {
                         ProfileRepository.LocalProfile copy =
@@ -398,6 +415,40 @@ public class HomeActivity extends AppCompatActivity {
                     showWelcome(user);
                     showStudentId();
                 });
+    }
+
+    // ================================================================ account status (NEW, admin)
+
+    /**
+     * LESSON: an admin changes a student's "accountStatus" in Firestore. This screen is already
+     * LISTENING to that document, so the change arrives within seconds, even while the app is open.
+     * A suspended or deactivated student sees a message they cannot dismiss, then is signed out.
+     * (The Firestore rules ALSO refuse new requests, bookings and payments from such an account, so
+     * a modified app could not get around this check.)
+     */
+    private void enforceAccountStatus(@Nullable String rawStatus) {
+        if (!AdminSession.isBlocked(rawStatus) || accountBlockedDialog != null
+                || isFinishing() || isDestroyed()) {
+            return;
+        }
+        String status = AdminSession.normalizeStatus(rawStatus);
+        String message = AdminSession.STATUS_SUSPENDED.equals(status)
+                ? "Your account has been suspended. Please contact the school administration."
+                : "Your account has been deactivated. Please contact the school administration.";
+        accountBlockedDialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("Account " + status)
+                .setMessage(message)
+                .setCancelable(false)
+                .setPositiveButton("OK", (d, which) -> {
+                    // Same clean sign-out the Profile screen uses: forget the session, open Sign In
+                    FirebaseAuth.getInstance().signOut();
+                    Intent intent = new Intent(this,
+                            com.example.mobilescholarschool.SignIn.SignInActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                })
+                .show();
     }
 
     // ================================================================ local database (NEW)

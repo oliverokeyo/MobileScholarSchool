@@ -63,6 +63,17 @@
             android:name=".PaymentsTab.PaymentActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <!-- NEW (admin): the five-tab admin screen and the administrator sign-up -->
+        <activity
+            android:name=".Admin.AdminMainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MobileScholarSchool"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".Admin.AdminSignUpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MobileScholarSchool"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".Onboarding.OnboardingActivity"
             android:exported="false"
