@@ -4,17 +4,18 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;                               // NEW
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
@@ -34,15 +35,18 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
- * The Library screen:
- *   - searches the "books" collection                      (Find a book)
- *   - opens the request form and saves the request          (Request a book)
- *   - tracks Pending / Approved / Rejected requests         (My requests)
- *   - tracks borrowed, overdue and returned books           (Borrowed books)
- *   - keeps the Borrowed / Pending / Overdue counters live, and each counter opens the matching list
+ * The Library screen. It is now a small HOME screen: the three counters and four rows. Each row
+ * opens a full-screen Fragment placed in R.id.fragmentContainer:
+ *   - Find a book     -> FindBookFragment      (the search bar + every book A-Z + Request buttons)
+ *   - Request a book  -> BorrowRequestDialogFragment (the request form, a pop-up DIALOG)
+ *   - My requests     -> MyRequestsFragment    (Pending / Approved / Rejected)
+ *   - Borrowed books  -> BorrowedBooksFragment (borrowed, overdue, returned)
+ * and it keeps the Borrowed / Pending / Overdue counters live (each counter opens its list).
+ *
+ * LESSON: the Activity no longer draws lists or runs searches. It OPENS screens, SAVES what they
+ * report back to it, and keeps the counters. Searching moved into FindBookFragment.
  */
 public class LibraryTabActivity extends AppCompatActivity {
 
@@ -50,20 +54,14 @@ public class LibraryTabActivity extends AppCompatActivity {
     private SwipeNavigator swipeNavigator;
 
     private static final String TAG = "LibraryTabActivity";
-    private static final int MAX_RESULTS = 20;
-
-    private final LibraryRepository repository = new LibraryRepository();
-
-    // The catalogue is downloaded ONCE, the first time the student searches, then reused.
-    private final List<Book> catalogue = new ArrayList<>();
-    private boolean catalogueLoaded = false;
-    private boolean catalogueLoading = false;
+    private View fragmentContainer;   // where the full-screen Fragments are placed
 
     // NEW: true while we are reading the profile before opening the form, so a quick
-    // double-tap on the row can't open two dialogs.
+    // double-tap on the row can't open two forms.
     private boolean openingRequestForm = false;
 
-    private EditText editSearch;
+    // The book details to pre-fill in the form (set when a book is picked in Find a book)
+    private String pendingIsbn, pendingTitle, pendingAuthor;
 
     // The three numbers at the top of the screen
     private TextView txtBorrowed, txtPending, txtOverdue;
@@ -95,7 +93,7 @@ public class LibraryTabActivity extends AppCompatActivity {
      */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (swipeNavigator != null && swipeNavigator.onTouchEvent(ev)) {
+        if (swipeNavigator != null && !isScreenOpen() && swipeNavigator.onTouchEvent(ev)) {
             return true;
         }
         return super.dispatchTouchEvent(ev);
@@ -123,42 +121,31 @@ public class LibraryTabActivity extends AppCompatActivity {
         // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
         swipeNavigator = new SwipeNavigator(this, R.id.nav_library);
 
-        editSearch = findViewById(R.id.editTxtTxt);
-
-        // Pressing the keyboard's search key runs the search
-        editSearch.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        editSearch.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                runSearch();
-                return true;
-            }
-            return false;
-        });
+        // The container that holds the full-screen Fragments. It is hidden until one is open.
+        fragmentContainer = findViewById(R.id.fragmentContainer);
+        getSupportFragmentManager().addOnBackStackChangedListener(this::syncFragmentContainer);
+        syncFragmentContainer();   // also needed after a rotation: the back stack was restored
 
         // The "Find a book" row is made of four views (icon, title, description, arrow).
         // Giving each the same listener makes the whole row tappable.
-        View.OnClickListener searchClick = v -> runSearch();
-        findViewById(R.id.imgFindBook).setOnClickListener(searchClick);
-        findViewById(R.id.txtViewFindBook).setOnClickListener(searchClick);
-        findViewById(R.id.txtViewFindBookDescription).setOnClickListener(searchClick);
-        findViewById(R.id.imgFindBookArrow).setOnClickListener(searchClick);
+        bindClick(v -> openFindBook(),
+                R.id.imgFindBook, R.id.txtViewFindBook,
+                R.id.txtViewFindBookDescription, R.id.imgFindBookArrow);
 
-        // NEW: the "Request a book" row works the same way, but opens the dialog fragment.
-        View.OnClickListener requestClick = v -> openRequestForm();
-        findViewById(R.id.imgRequestBook).setOnClickListener(requestClick);
-        findViewById(R.id.txtViewRequestBook).setOnClickListener(requestClick);
-        findViewById(R.id.txtViewRequestBookDescription).setOnClickListener(requestClick);
-        findViewById(R.id.imgRequestBookArrow).setOnClickListener(requestClick);
+        // The "Request a book" row opens the empty request form.
+        bindClick(v -> openRequestForm(null, null, null),
+                R.id.imgRequestBook, R.id.txtViewRequestBook,
+                R.id.txtViewRequestBookDescription, R.id.imgRequestBookArrow);
 
-        // NEW: the "My requests" row opens the dialog that tracks Pending / Approved / Rejected.
-        View.OnClickListener myRequestsClick = v -> openMyRequests(MyRequestsDialogFragment.FILTER_ALL);
+        // The "My requests" row opens the screen that tracks Pending / Approved / Rejected.
+        View.OnClickListener myRequestsClick = v -> openMyRequests(MyRequestsFragment.FILTER_ALL);
         findViewById(R.id.imgRequests).setOnClickListener(myRequestsClick);
         findViewById(R.id.txtViewRequests).setOnClickListener(myRequestsClick);
         findViewById(R.id.txtViewRequestsDescription).setOnClickListener(myRequestsClick);
         findViewById(R.id.imgRequestsArrow).setOnClickListener(myRequestsClick);
 
-        // NEW: the "Borrowed books" row opens the dialog that tracks loans.
-        bindClick(v -> openBorrowedBooks(BorrowedBooksDialogFragment.FILTER_BORROWED),
+        // The "Borrowed books" row opens the screen that tracks loans.
+        bindClick(v -> openBorrowedBooks(BorrowedBooksFragment.FILTER_BORROWED),
                 R.id.imgBorrowedBooks, R.id.txtViewBorrowedBooks,
                 R.id.txtViewBorrowedBooksDescription, R.id.imgBorrowedBooksArrow);
 
@@ -175,19 +162,66 @@ public class LibraryTabActivity extends AppCompatActivity {
         }
 
         // NEW: each number (and its label) opens the list it counts.
-        bindClick(v -> openBorrowedBooks(BorrowedBooksDialogFragment.FILTER_BORROWED),
+        bindClick(v -> openBorrowedBooks(BorrowedBooksFragment.FILTER_BORROWED),
                 R.id.txtViewBorrowed, R.id.editTxtNumberBorrowed);
-        bindClick(v -> openMyRequests(MyRequestsDialogFragment.FILTER_PENDING),
+        bindClick(v -> openMyRequests(MyRequestsFragment.FILTER_PENDING),
                 R.id.txtViewPending, R.id.editTxtNumberPending);
-        bindClick(v -> openBorrowedBooks(BorrowedBooksDialogFragment.FILTER_OVERDUE),
+        bindClick(v -> openBorrowedBooks(BorrowedBooksFragment.FILTER_OVERDUE),
                 R.id.txtViewOverdue, R.id.editTxtNumberOverdue);
 
-        // The dialog does NOT save anything itself. When the student submits a valid form it sends
-        // the answers back under REQUEST_KEY, and this listener receives them. Passing `this` ties
-        // the listener to the screen's lifecycle, so it also works after a rotation.
+        // LESSON: the Fragments do NOT save anything themselves. They report back with the
+        // Fragment Result API, and these two listeners receive the answers. Passing `this` ties
+        // each listener to the screen's lifecycle, so it also works after a rotation.
+
+        // 1) The request form was submitted -> save the request.
         getSupportFragmentManager().setFragmentResultListener(
                 BorrowRequestDialogFragment.REQUEST_KEY, this,
                 (requestKey, result) -> saveRequest(result));
+
+        // 2) A book was chosen in "Find a book" -> open the request form pre-filled with it.
+        getSupportFragmentManager().setFragmentResultListener(
+                FindBookFragment.REQUEST_KEY, this, (requestKey, result) -> openRequestForm(
+                        result.getString(FindBookFragment.RESULT_ISBN, ""),
+                        result.getString(FindBookFragment.RESULT_TITLE, ""),
+                        result.getString(FindBookFragment.RESULT_AUTHOR, "")));
+    }
+
+    // ---------------------------------------------------------------- NEW: showing Fragments
+
+    /** True while a full-screen Fragment is open on top of the Library screen. */
+    private boolean isScreenOpen() {
+        return getSupportFragmentManager().getBackStackEntryCount() > 0;
+    }
+
+    /** Shows the Fragment container while a screen is open, hides it when the last one closes. */
+    private void syncFragmentContainer() {
+        if (fragmentContainer != null) {
+            fragmentContainer.setVisibility(isScreenOpen() ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    /**
+     * Puts a Fragment in the container. LESSON:
+     *   replace()        puts the new screen where the old one was
+     *   addToBackStack() makes the Back button close it (and bring the old one back)
+     *   commit()         does it on the next frame; executePendingTransactions() makes it happen
+     *                    NOW, so a quick double-tap can't open the same screen twice
+     */
+    private void showScreen(Fragment fragment, String tag) {
+        FragmentManager fm = getSupportFragmentManager();
+        if (fm.isStateSaved() || fm.findFragmentByTag(tag) != null) {
+            return;   // already open (or the screen is being rotated): don't stack a second one
+        }
+        fm.beginTransaction()
+                .replace(R.id.fragmentContainer, fragment, tag)
+                .addToBackStack(tag)
+                .commit();
+        fm.executePendingTransactions();
+    }
+
+    /** Opens "Find a book": the search bar plus the whole catalogue. */
+    private void openFindBook() {
+        showScreen(FindBookFragment.newInstance(), FindBookFragment.TAG);
     }
 
     // NEW: the live counters connect when the screen becomes visible...
@@ -298,8 +332,8 @@ public class LibraryTabActivity extends AppCompatActivity {
                     int pending = 0;
                     for (QueryDocumentSnapshot doc : snap) {
                         try {
-                            String status = MyRequestsDialogFragment.normalizeStatus(doc.getString("status"));
-                            if (MyRequestsDialogFragment.FILTER_PENDING.equals(status)) {
+                            String status = MyRequestsFragment.normalizeStatus(doc.getString("status"));
+                            if (MyRequestsFragment.FILTER_PENDING.equals(status)) {
                                 pending++;
                             }
                         } catch (RuntimeException e) {
@@ -328,7 +362,7 @@ public class LibraryTabActivity extends AppCompatActivity {
                             }
                             borrowed++;
                             // The SAME definition of overdue the dialog uses
-                            if (BorrowedBooksDialogFragment.isOverdue(doc.getTimestamp("dueDate"), null)) {
+                            if (BorrowedBooksFragment.isOverdue(doc.getTimestamp("dueDate"), null)) {
                                 overdue++;
                             }
                         } catch (RuntimeException e) {
@@ -361,15 +395,18 @@ public class LibraryTabActivity extends AppCompatActivity {
     // ---------------------------------------------------------------- NEW: request a book
 
     /**
-     * Reads the student's registration number from their profile, then opens the form.
+     * Reads the student's registration number from their profile, then opens the form dialog.
      * The form needs it because the security rules will compare it with the saved profile.
      * (This direct Firestore call will move into LibraryRepository later.)
      */
-    private void openRequestForm() {
+    private void openRequestForm(@Nullable String isbn, @Nullable String title, @Nullable String author) {
         // Already open (for example after a rotation)? Don't stack a second one.
         if (getSupportFragmentManager().findFragmentByTag(BorrowRequestDialogFragment.TAG) != null) {
             return;
         }
+        pendingIsbn = isbn;
+        pendingTitle = title;
+        pendingAuthor = author;
         if (openingRequestForm) {
             return;   // a profile read is already in flight
         }
@@ -410,10 +447,13 @@ public class LibraryTabActivity extends AppCompatActivity {
         if (isFinishing() || isDestroyed() || getSupportFragmentManager().isStateSaved()) {
             return;   // showing a dialog now would crash with "state already saved"
         }
-        // The three nulls mean "start with empty boxes"; later, a book picked from the search
-        // results will pass its ISBN, title and author here.
+        // pendingIsbn / pendingTitle / pendingAuthor are null for an empty form, or hold the book
+        // the student picked in "Find a book".
+        // LESSON: the form is a DialogFragment, so it is shown with show(), NOT showScreen().
+        // It floats above whatever is open (the Library home OR the Find a book screen), and when
+        // it closes the student is exactly where they were.
         BorrowRequestDialogFragment
-                .newInstance(registrationNo, null, null, null)
+                .newInstance(registrationNo, pendingIsbn, pendingTitle, pendingAuthor)
                 .show(getSupportFragmentManager(), BorrowRequestDialogFragment.TAG);
     }
 
@@ -443,29 +483,27 @@ public class LibraryTabActivity extends AppCompatActivity {
     }
 
     /**
-     * NEW: opens the "My requests" dialog. Unlike the request form it needs no profile read:
-     * the dialog finds the signed-in student itself and listens to their requests live.
+     * NEW: opens the "My requests" screen. Unlike the request form it needs no profile read:
+     * the screen finds the signed-in student itself and listens to their requests live.
      */
     private void openMyRequests(String filter) {
         // Already open (for example after a rotation)? Don't stack a second one.
-        if (getSupportFragmentManager().findFragmentByTag(MyRequestsDialogFragment.TAG) != null) {
+        if (getSupportFragmentManager().findFragmentByTag(MyRequestsFragment.TAG) != null) {
             return;
         }
-        MyRequestsDialogFragment.newInstance(filter)
-                .show(getSupportFragmentManager(), MyRequestsDialogFragment.TAG);
+        showScreen(MyRequestsFragment.newInstance(filter), MyRequestsFragment.TAG);
     }
 
     /**
-     * NEW: opens the "Borrowed books" dialog on the given tab (FILTER_BORROWED, FILTER_OVERDUE
-     * or FILTER_RETURNED). Like "My requests" it needs no profile read: the dialog finds the
+     * NEW: opens the "Borrowed books" screen on the given tab (FILTER_BORROWED, FILTER_OVERDUE
+     * or FILTER_RETURNED). Like "My requests" it needs no profile read: the screen finds the
      * signed-in student itself and listens to their loans live.
      */
     private void openBorrowedBooks(String filter) {
-        if (getSupportFragmentManager().findFragmentByTag(BorrowedBooksDialogFragment.TAG) != null) {
+        if (getSupportFragmentManager().findFragmentByTag(BorrowedBooksFragment.TAG) != null) {
             return;
         }
-        BorrowedBooksDialogFragment.newInstance(filter)
-                .show(getSupportFragmentManager(), BorrowedBooksDialogFragment.TAG);
+        showScreen(BorrowedBooksFragment.newInstance(filter), BorrowedBooksFragment.TAG);
     }
 
     // ---------------------------------------------------------------- NEW: save the request
@@ -513,124 +551,6 @@ public class LibraryTabActivity extends AppCompatActivity {
                 });
     }
 
-    // ---------------------------------------------------------------- find a book (Stage 1, unchanged)
-
-    /** Searches the catalogue for whatever is typed in the search box. */
-    private void runSearch() {
-        String query = editSearch.getText() == null ? "" : editSearch.getText().toString().trim();
-        if (query.isEmpty()) {
-            Toast.makeText(this, "Type a title, author or ISBN in the search box first.",
-                    Toast.LENGTH_SHORT).show();
-            editSearch.requestFocus();
-            return;
-        }
-
-        if (!catalogueLoaded && !SessionUser.isSignedIn()) {
-            Toast.makeText(this, "Searching the catalogue needs your account. It works once "
-                    + "your account has been created.", Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (catalogueLoaded) {
-            showResults(query);   // already downloaded: no network needed
-            return;
-        }
-        if (catalogueLoading) {
-            return;               // already fetching: ignore extra taps
-        }
-
-        catalogueLoading = true;
-        Toast.makeText(this, "Loading the catalogue…", Toast.LENGTH_SHORT).show();
-
-        // Firebase calls run in the BACKGROUND. The code after this line runs immediately;
-        // the lambda below runs later, when Firestore replies (successfully or not).
-        repository.loadCatalogue().addOnCompleteListener(task -> {
-            catalogueLoading = false;
-            if (isFinishing() || isDestroyed()) {
-                return;           // the screen closed while we waited
-            }
-
-            if (!task.isSuccessful() || task.getResult() == null) {
-                // The student sees a friendly message; YOU see the real reason in Logcat
-                // (PERMISSION_DENIED means the rules for "books" are not published yet).
-                Log.e(TAG, "Catalogue failed", task.getException());
-                Toast.makeText(this, "Could not load the catalogue. Connect to the internet once so it can be saved on this phone.",
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
-
-            catalogue.clear();
-            for (QueryDocumentSnapshot doc : task.getResult()) {
-                // One badly typed document (for example copiesAvailable saved as TEXT)
-                // must not crash the whole screen, so each book gets its own safety net.
-                try {
-                    catalogue.add(doc.toObject(Book.class));
-                } catch (RuntimeException e) {
-                    Log.e(TAG, "Skipping bad book document: " + doc.getId(), e);
-                }
-            }
-            catalogueLoaded = true;
-            showResults(query);
-        });
-    }
-
-    /** Filters the downloaded catalogue and shows the matches in a dialog. */
-    private void showResults(String query) {
-        String lowered = query.toLowerCase(Locale.ROOT);
-        // "978-0-262-04630-5" and "9780262046305" should find the same book
-        String isbnQuery = normalizeIsbn(query);
-
-        List<Book> matches = new ArrayList<>();
-        for (Book book : catalogue) {
-            if (matches.size() >= MAX_RESULTS) {
-                break;
-            }
-            boolean hit = contains(book.title, lowered)
-                    || contains(book.author, lowered)
-                    || (book.isbn != null && !isbnQuery.isEmpty()
-                    && normalizeIsbn(book.isbn).contains(isbnQuery));
-            if (hit) {
-                matches.add(book);
-            }
-        }
-
-        if (matches.isEmpty()) {
-            new MaterialAlertDialogBuilder(this)
-                    .setTitle("Search results")
-                    .setMessage("No matching books found.")
-                    .setPositiveButton("Close", null)
-                    .show();
-            return;
-        }
-
-        String[] labels = new String[matches.size()];
-        for (int i = 0; i < matches.size(); i++) {
-            Book b = matches.get(i);
-            labels[i] = orDash(b.title) + "  —  " + orDash(b.author)
-                    + "\nISBN " + orDash(b.isbn)
-                    + "  ·  Shelf " + orDash(b.shelfLocation)
-                    + "  ·  " + b.copiesAvailable + " available";
-        }
-
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Search results (" + matches.size() + ")")
-                .setItems(labels, null)
-                .setPositiveButton("Close", null)
-                .show();
-    }
-
-    // ---------------------------------------------------------------- small helpers
-
-    private static boolean contains(String text, String loweredQuery) {
-        return text != null && text.toLowerCase(Locale.ROOT).contains(loweredQuery);
-    }
-
-    /** Removes spaces and hyphens and upper-cases an X: "978-0-262-04630-5" becomes "9780262046305". */
-    private static String normalizeIsbn(String raw) {
-        return raw == null ? "" : raw.replaceAll("[\\s-]", "").toUpperCase(Locale.ROOT);
-    }
-
-    /** Shows "-" instead of the word "null" when a field is missing. */
-    private static String orDash(String value) {
-        return (value == null || value.isEmpty()) ? "-" : value;
-    }
+    // ---------------------------------------------------------------- find a book
+    // Searching the catalogue now lives in FindBookFragment (see openFindBook above).
 }
