@@ -14,6 +14,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
@@ -34,10 +36,25 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
+/**
+ * The Hostel screen. It is now a HOME screen: the student's "My Accommodation" card plus six rows.
+ * Each row opens its own full-screen Fragment in R.id.fragmentContainer, and every one of them
+ * lets the student BOOK from it:
+ *
+ *   Find a Hostel      -> HostelSearchFragment        search bar + every hostel
+ *   Hostel Location    -> HostelLocationFragment      hostels grouped by where they are
+ *   Sharing Preference -> HostelSharingFragment       private and shared rooms
+ *   Room Type          -> HostelRoomTypeFragment      bedsitters, singles, one-bedrooms, shared
+ *   Budget             -> HostelBudgetFragment        type a maximum rent, get suggestions
+ *   Custom Search      -> HostelCustomSearchFragment  radio buttons + budget + facilities
+ *
+ * LESSON: the old design remembered a choice from each dialog and combined them all behind one
+ * "Search hostels" button. Now there is NO shared selection to remember. Each screen is
+ * complete on its own, so this Activity is much simpler: it opens screens and saves bookings.
+ */
 public class HostelActivity extends AppCompatActivity {
 
     // Drag-to-switch-tab with spring animation. Null until the screen is set up.
@@ -45,27 +62,13 @@ public class HostelActivity extends AppCompatActivity {
 
     private static final String TAG = "HostelActivity";
 
-    // Saved across rotation (an Activity is rebuilt when the phone turns, and loses its fields)
-    private static final String STATE_LOCATION = "state_location";
-    private static final String STATE_SHARING = "state_sharing";
-    private static final String STATE_ROOM_TYPE = "state_room_type";
-    private static final String STATE_MAX_RENT = "state_max_rent";
-    private static final String STATE_FACILITIES = "state_facilities";
-
-    private TextView txtViewStudentID;
-
     // The student's registration number; null until the profile has loaded
     private String studentId;
 
     // Our live connection to the profile, so onStop can switch it off
     private ListenerRegistration profileListener;
 
-    private String selectedLocation = "";                 // "campus", "nearby" or "off-campus"
-    private String selectedSharing = "";                  // "private" or "shared"
-    private String selectedRoomType = "";                 // "bedsitter", "single", "one-bedroom", "shared"
-    private long selectedMaxRent = 0;                     // KES per month, per student; 0 = no limit
-    private final ArrayList<String> selectedFacilities = new ArrayList<>();   // e.g. "wifi", "water"
-    private TextView descLocation, descSharing, descRoom, descBudget;
+    private View fragmentContainer;   // where the full-screen Fragments are placed
 
     // NEW: the "My Accommodation" card shows the student's latest booking
     private TextView txtBookingStatus;
@@ -82,7 +85,6 @@ public class HostelActivity extends AppCompatActivity {
         }
     };
     private boolean hasActiveBooking = false;   // true while a booking is pending or approved
-    private String originalLocationText, originalSharingText, originalRoomText, originalBudgetText;
 
     /**
      * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
@@ -91,7 +93,7 @@ public class HostelActivity extends AppCompatActivity {
      */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (swipeNavigator != null && swipeNavigator.onTouchEvent(ev)) {
+        if (swipeNavigator != null && !isScreenOpen() && swipeNavigator.onTouchEvent(ev)) {
             return true;
         }
         return super.dispatchTouchEvent(ev);
@@ -119,18 +121,14 @@ public class HostelActivity extends AppCompatActivity {
         // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
         swipeNavigator = new SwipeNavigator(this, R.id.nav_hostel);
 
-        // Replaces the fixed "Student ID:(SB06/SR/1234/90)" text from the layout straight away,
-        txtViewStudentID = findViewById(R.id.txtViewStudentID);
-        txtViewStudentID.setText(R.string.student_id_loading);
-
-        setUpFindAccommodation(savedInstanceState);
+        setUpScreens();
     }
 
     // The live connection starts when the screen becomes visible...
     @Override
     protected void onStart() {
         super.onStart();
-        if (txtViewStudentID != null) {   // null only if AuthGuard sent a signed-out user away
+        if (txtBookingStatus != null) {   // null only if AuthGuard sent a signed-out user away
             DataChangeNotifier.register(dataListener);   // NEW
             loadLocalProfile(false);                     // NEW: instant, works offline
             loadLocalBookings();                         // NEW: instant, works offline
@@ -154,163 +152,84 @@ public class HostelActivity extends AppCompatActivity {
         DataChangeNotifier.unregister(dataListener);   // NEW
     }
 
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString(STATE_LOCATION, selectedLocation);
-        outState.putString(STATE_SHARING, selectedSharing);
-        outState.putString(STATE_ROOM_TYPE, selectedRoomType);
-        outState.putLong(STATE_MAX_RENT, selectedMaxRent);
-        outState.putStringArrayList(STATE_FACILITIES, selectedFacilities);
-    }
+    // ================================================================ the six screens
 
+    private void setUpScreens() {
+        // The container that holds the full-screen Fragments. It is hidden until one is open.
+        fragmentContainer = findViewById(R.id.fragmentContainer);
+        getSupportFragmentManager().addOnBackStackChangedListener(this::syncFragmentContainer);
+        syncFragmentContainer();   // also needed after a rotation: the back stack was restored
 
-    private void setUpFindAccommodation(@Nullable Bundle savedInstanceState) {
-        // The description lines: remember the original wording so "Any" can put it back
-        descLocation = findViewById(R.id.txtViewLocationDescription);
-        descSharing = findViewById(R.id.textViewPreferenceDescription);
-        descRoom = findViewById(R.id.txtViewRoomDescription);
-        descBudget = findViewById(R.id.textViewBudgetDescription);
-        originalLocationText = descLocation.getText().toString();
-        originalSharingText = descSharing.getText().toString();
-        originalRoomText = descRoom.getText().toString();
-        originalBudgetText = descBudget.getText().toString();
-
-        // After a rotation, bring the choices back
-        if (savedInstanceState != null) {
-            selectedLocation = savedInstanceState.getString(STATE_LOCATION, "");
-            selectedSharing = savedInstanceState.getString(STATE_SHARING, "");
-            selectedRoomType = savedInstanceState.getString(STATE_ROOM_TYPE, "");
-            selectedMaxRent = savedInstanceState.getLong(STATE_MAX_RENT, 0);
-            ArrayList<String> facilities = savedInstanceState.getStringArrayList(STATE_FACILITIES);
-            if (facilities != null) {
-                selectedFacilities.addAll(facilities);
-            }
-        }
-
-        // Each row is made of several views (icon, title, description, arrow). Giving each one the
-        // same listener makes the whole row tappable. (The Sharing row has no icon in your layout.)
-        bindClick(v -> openChoice(HostelChoiceDialogFragment.forLocation(selectedLocation)),
-                R.id.imgLocation, R.id.txtViewLocation,
-                R.id.txtViewLocationDescription, R.id.imgLocationArrow);
-        bindClick(v -> openChoice(HostelChoiceDialogFragment.forSharing(selectedSharing)),
-                R.id.txtViewPreferance, R.id.textViewPreferenceDescription, R.id.imgPreferenceArrow);
-        bindClick(v -> openChoice(HostelChoiceDialogFragment.forRoomType(selectedRoomType)),
-                R.id.imgRoom, R.id.txtViewRoom,
-                R.id.txtViewRoomDescription, R.id.imgRoomArrow);
-        bindClick(v -> openBudget(),
-                R.id.imgBudget, R.id.txtViewBudget,
-                R.id.textViewBudgetDescription, R.id.imgBudgetArrow);
-
-        getSupportFragmentManager().setFragmentResultListener(
-                HostelChoiceDialogFragment.KEY_LOCATION, this, (key, result) -> {
-                    selectedLocation = result.getString(HostelChoiceDialogFragment.RESULT_VALUE, "");
-                    showSelections();
-                });
-        getSupportFragmentManager().setFragmentResultListener(
-                HostelChoiceDialogFragment.KEY_SHARING, this, (key, result) -> {
-                    selectedSharing = result.getString(HostelChoiceDialogFragment.RESULT_VALUE, "");
-                    showSelections();
-                });
-        getSupportFragmentManager().setFragmentResultListener(
-                HostelChoiceDialogFragment.KEY_ROOM_TYPE, this, (key, result) -> {
-                    selectedRoomType = result.getString(HostelChoiceDialogFragment.RESULT_VALUE, "");
-                    showSelections();
-                });
-        getSupportFragmentManager().setFragmentResultListener(
-                HostelBudgetDialogFragment.REQUEST_KEY, this, (key, result) -> {
-                    selectedMaxRent = result.getLong(HostelBudgetDialogFragment.RESULT_MAX_RENT, 0);
-                    selectedFacilities.clear();
-                    String[] chosen = result.getStringArray(HostelBudgetDialogFragment.RESULT_FACILITIES);
-                    if (chosen != null) {
-                        Collections.addAll(selectedFacilities, chosen);
-                    }
-                    showSelections();
-                });
-
-        // NEW: the status card, the Search button, and the answer from the results dialog
+        // The "My Accommodation" card
         txtBookingStatus = findViewById(R.id.textView2);
         originalBookingText = txtBookingStatus.getText().toString();
 
-        findViewById(R.id.btnSearchHostels).setOnClickListener(v -> openSearchResults());
+        // LESSON: a MaterialCardView can be clicked as a whole. Children that are not clickable
+        // themselves (our icons and texts) pass the tap UP to the card, so one listener per
+        // card is enough (the older screens bound every view in a row separately).
+        findViewById(R.id.cardFindHostel).setOnClickListener(
+                v -> showScreen(HostelSearchFragment.newInstance(), HostelSearchFragment.TAG));
+        findViewById(R.id.cardLocation).setOnClickListener(
+                v -> showScreen(HostelLocationFragment.newInstance(), HostelLocationFragment.TAG));
+        findViewById(R.id.cardPreference).setOnClickListener(
+                v -> showScreen(HostelSharingFragment.newInstance(), HostelSharingFragment.TAG));
+        findViewById(R.id.cardRoom).setOnClickListener(
+                v -> showScreen(HostelRoomTypeFragment.newInstance(), HostelRoomTypeFragment.TAG));
+        findViewById(R.id.cardBudget).setOnClickListener(
+                v -> showScreen(HostelBudgetFragment.newInstance(), HostelBudgetFragment.TAG));
+        findViewById(R.id.cardCustomSearch).setOnClickListener(
+                v -> showScreen(HostelCustomSearchFragment.newInstance(), HostelCustomSearchFragment.TAG));
 
-        // The results dialog saves nothing itself. When the student confirms a room it sends the
-        // room's details back under this key, and saveBooking() writes the booking request.
+        // The screens save nothing themselves. When the student confirms a room, whichever screen
+        // they were on sends the room's details back under this key, and saveBooking() writes the
+        // booking request. ONE listener serves all six screens, because they all use the same key.
         getSupportFragmentManager().setFragmentResultListener(
-                HostelSearchResultDialogFragment.REQUEST_KEY, this, (key, result) -> saveBooking(result));
-
-        showSelections();
+                HostelBaseFragment.REQUEST_KEY, this, (key, result) -> saveBooking(result));
     }
 
-    private void openChoice(HostelChoiceDialogFragment dialog) {
-        // Already open (for example after a rotation)? Don't stack a second one.
-        if (getSupportFragmentManager().findFragmentByTag(HostelChoiceDialogFragment.TAG) != null) {
-            return;
+    /** True while a full-screen Fragment is open on top of the Hostel screen. */
+    private boolean isScreenOpen() {
+        return getSupportFragmentManager().getBackStackEntryCount() > 0;
+    }
+
+    /** Shows the Fragment container while a screen is open, hides it when the last one closes. */
+    private void syncFragmentContainer() {
+        if (fragmentContainer != null) {
+            fragmentContainer.setVisibility(isScreenOpen() ? View.VISIBLE : View.GONE);
         }
-        dialog.show(getSupportFragmentManager(), HostelChoiceDialogFragment.TAG);
     }
 
-    private void openBudget() {
-        if (getSupportFragmentManager().findFragmentByTag(HostelBudgetDialogFragment.TAG) != null) {
-            return;
+    /**
+     * Puts a Fragment in the container. LESSON:
+     *   replace()        puts the new screen in the container
+     *   addToBackStack() makes the Back button close it and reveal the Hostel screen again
+     *   commit()         does it on the next frame; executePendingTransactions() makes it happen
+     *                    NOW, so a quick double-tap can't open the same screen twice
+     */
+    private void showScreen(Fragment fragment, String tag) {
+        FragmentManager fm = getSupportFragmentManager();
+        if (fm.isStateSaved() || fm.findFragmentByTag(tag) != null) {
+            return;   // already open (or the screen is being rotated): don't stack a second one
         }
-        HostelBudgetDialogFragment.newInstance(selectedMaxRent, selectedFacilities)
-                .show(getSupportFragmentManager(), HostelBudgetDialogFragment.TAG);
-    }
-
-    /** Shows the current choice on each row, or the original wording when nothing is chosen. */
-    private void showSelections() {
-        setDescription(descLocation, originalLocationText,
-                HostelChoiceDialogFragment.locationLabel(selectedLocation));
-        setDescription(descSharing, originalSharingText,
-                HostelChoiceDialogFragment.sharingLabel(selectedSharing));
-        setDescription(descRoom, originalRoomText,
-                HostelChoiceDialogFragment.roomTypeLabel(selectedRoomType));
-
-        String budget = HostelBudgetDialogFragment.summaryOf(selectedMaxRent, selectedFacilities);
-        setDescription(descBudget, originalBudgetText, budget.isEmpty() ? null : budget);
-    }
-
-    private static void setDescription(TextView view, String original, @Nullable String choice) {
-        view.setText(choice == null ? original : "Selected: " + choice);
-    }
-
-    /** Gives every one of the listed views the same click listener (so a whole row is tappable). */
-    private void bindClick(View.OnClickListener listener, int... viewIds) {
-        for (int id : viewIds) {
-            findViewById(id).setOnClickListener(listener);
-        }
+        fm.beginTransaction()
+                .replace(R.id.fragmentContainer, fragment, tag)
+                .addToBackStack(tag)
+                .commit();
+        fm.executePendingTransactions();
     }
 
     // ================================================================ search and booking (NEW)
 
-    /** Opens "Hostel Search Result" with the four choices the student has made. */
-    private void openSearchResults() {
-        // The room list lives on the server and needs a real account. A waiting sign-up has none yet.
-        if (!SessionUser.isSignedIn()) {
-            Toast.makeText(this, "Searching hostels needs your account. It works once your "
-                    + "account has been created.", Toast.LENGTH_LONG).show();
-            return;
-        }
-        // Already open (for example after a rotation)? Don't stack a second one.
-        if (getSupportFragmentManager().findFragmentByTag(HostelSearchResultDialogFragment.TAG) != null) {
-            return;
-        }
-        HostelSearchResultDialogFragment
-                .newInstance(selectedLocation, selectedSharing, selectedRoomType,
-                        selectedMaxRent, selectedFacilities)
-                .show(getSupportFragmentManager(), HostelSearchResultDialogFragment.TAG);
-    }
-
     /**
-     * CHANGED: saves the student's confirmed choice in the LOCAL database (sync_state =
+     * CHANGED: saves the student's confirmed choice (from ANY of the six screens) in the LOCAL database (sync_state =
      * pending_sync). SyncWorker later creates the document in "hostelBookings" with status
      * "pending" and sends it as soon as there is internet. The admin approves it afterwards,
      * and only then is the place theirs. Free places are not reduced here.
      */
     private void saveBooking(Bundle booking) {
         // The student's identity comes from the session here (real uid, or the provisional id of a
-        // waiting sign-up), never from the dialog, so a booking is always in the student's own name.
+        // waiting sign-up), never from the screen that reported the booking, so a booking is always
+        // in the student's own name.
         String uid = SessionUser.uid(getApplicationContext());
         if (uid == null) {
             Toast.makeText(this, "Please sign in again.", Toast.LENGTH_LONG).show();
@@ -322,7 +241,7 @@ public class HostelActivity extends AppCompatActivity {
             return;
         }
         if (hasActiveBooking) {
-            // The dialog already switches Book off; this is the second line of defence.
+            // The screens already switch Book off; this is the second line of defence.
             Toast.makeText(this, "You already have an active booking.", Toast.LENGTH_LONG).show();
             return;
         }
@@ -330,12 +249,12 @@ public class HostelActivity extends AppCompatActivity {
         HostelBookingRepository.Booking b = new HostelBookingRepository.Booking();
         b.uid = uid;
         b.studentIdNumber = studentId.trim();
-        b.hostelId = booking.getString(HostelSearchResultDialogFragment.RESULT_HOSTEL_ID, "");
-        b.hostelName = booking.getString(HostelSearchResultDialogFragment.RESULT_HOSTEL_NAME, "");
-        b.roomId = booking.getString(HostelSearchResultDialogFragment.RESULT_ROOM_ID, "");
-        b.roomType = booking.getString(HostelSearchResultDialogFragment.RESULT_ROOM_TYPE, "");
-        b.sharing = booking.getString(HostelSearchResultDialogFragment.RESULT_SHARING, "");
-        b.rentPerMonth = booking.getLong(HostelSearchResultDialogFragment.RESULT_RENT, 0);
+        b.hostelId = booking.getString(HostelBaseFragment.RESULT_HOSTEL_ID, "");
+        b.hostelName = booking.getString(HostelBaseFragment.RESULT_HOSTEL_NAME, "");
+        b.roomId = booking.getString(HostelBaseFragment.RESULT_ROOM_ID, "");
+        b.roomType = booking.getString(HostelBaseFragment.RESULT_ROOM_TYPE, "");
+        b.sharing = booking.getString(HostelBaseFragment.RESULT_SHARING, "");
+        b.rentPerMonth = booking.getLong(HostelBaseFragment.RESULT_RENT, 0);
 
         // Block a quick double tap before the database has answered
         hasActiveBooking = true;
@@ -457,7 +376,7 @@ public class HostelActivity extends AppCompatActivity {
                     : status.isEmpty() ? "Unknown"
                     : Character.toUpperCase(status.charAt(0)) + status.substring(1);
 
-            String roomLabel = HostelChoiceDialogFragment.roomTypeLabel(bookingStatusOf(latest.roomType));
+            String roomLabel = HostelData.roomTypeLabel(bookingStatusOf(latest.roomType));
             String roomType = roomLabel != null ? roomLabel : latest.roomType;
 
             StringBuilder text = new StringBuilder(word).append(": ")
@@ -469,7 +388,7 @@ public class HostelActivity extends AppCompatActivity {
                 text.append("  ·  ").append(latest.sharing.trim());
             }
             if (latest.rentPerMonth > 0) {
-                text.append("  ·  KES ").append(HostelBudgetDialogFragment.formatKes(latest.rentPerMonth))
+                text.append("  ·  KES ").append(HostelData.formatKes(latest.rentPerMonth))
                         .append(" per month");
             }
             if (SyncState.PENDING_SYNC.equals(latest.syncState)) {
@@ -515,9 +434,6 @@ public class HostelActivity extends AppCompatActivity {
                         // The student sees a short message; YOU see the real reason in Logcat
                         // (PERMISSION_DENIED means the "users" rules are not published).
                         Log.e(TAG, "Profile listener failed", error);
-                        if (studentId == null) {
-                            txtViewStudentID.setText(R.string.student_id_unavailable);
-                        }
                         return;
                     }
 
@@ -540,12 +456,12 @@ public class HostelActivity extends AppCompatActivity {
                         Log.e(TAG, "registrationNo has the wrong type", e);
                         studentId = null;
                     }
-                    showStudentId();
                 });
     }
 
     /**
-     * NEW: shows the student ID from the LOCAL copy, so it appears instantly and offline.
+     * NEW: reads the student ID from the LOCAL copy, so it is ready instantly and offline.
+     * It is no longer SHOWN on this screen, but every booking is saved with it.
      * @param force false = only fill it if we have nothing yet; true = replace (the copy changed)
      */
     private void loadLocalProfile(boolean force) {
@@ -560,16 +476,7 @@ public class HostelActivity extends AppCompatActivity {
             if (p.registrationNo != null && !p.registrationNo.trim().isEmpty()
                     && (force || studentId == null)) {
                 studentId = p.registrationNo;
-                showStudentId();
             }
         });
-    }
-
-    private void showStudentId() {
-        if (studentId == null || studentId.trim().isEmpty()) {
-            txtViewStudentID.setText(R.string.student_id_not_available);
-        } else {
-            txtViewStudentID.setText(getString(R.string.student_id_format, studentId));
-        }
     }
 }

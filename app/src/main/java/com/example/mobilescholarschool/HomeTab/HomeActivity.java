@@ -32,8 +32,8 @@ import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
 import com.example.mobilescholarschool.Data.HostelBookingRepository;     // NEW
 import com.example.mobilescholarschool.Data.ProfileRepository;           // NEW
 import com.example.mobilescholarschool.Data.SyncState;                   // NEW
+import com.example.mobilescholarschool.LibraryTab.BorrowedBooksFragment;  // the shared overdue rule
 import com.example.mobilescholarschool.Sync.SyncScheduler;               // NEW
-import com.example.mobilescholarschool.LibraryTab.BorrowedBooksDialogFragment;
 import com.example.mobilescholarschool.PaymentsTab.PaymentsViewModel;    // NEW: the student's payments
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignUp.SignUpActivity;            // NEW
@@ -589,7 +589,7 @@ public class HomeActivity extends AppCompatActivity {
                             Timestamp due = doc.getTimestamp("dueDate");
                             if (due != null) {
                                 feeDueText = formatDate(due.toDate().getTime());
-                                feePastDue = BorrowedBooksDialogFragment.daysUntil(
+                                feePastDue = BorrowedBooksFragment.daysUntil(
                                         due.toDate().getTime(), System.currentTimeMillis()) < 0;
                             }
                         }
@@ -631,11 +631,11 @@ public class HomeActivity extends AppCompatActivity {
                             borrowed++;
 
                             Timestamp due = doc.getTimestamp("dueDate");
-                            String title = BorrowedBooksDialogFragment.headingOf(
+                            String title = BorrowedBooksFragment.headingOf(
                                     doc.getString("bookTitle"), doc.getString("author"), doc.getString("isbn"));
 
                             // The SAME definition of "overdue" the Library screen uses
-                            if (BorrowedBooksDialogFragment.isOverdue(due, null)) {
+                            if (BorrowedBooksFragment.isOverdue(due, null)) {
                                 overdue++;
                                 if (overdueDue == null || due.compareTo(overdueDue) < 0) {
                                     overdueDue = due;

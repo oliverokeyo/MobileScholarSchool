@@ -1,20 +1,15 @@
 package com.example.mobilescholarschool.LibraryTab;
 
-import android.app.Dialog;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.DialogFragment;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.example.mobilescholarschool.Components.ListScreenFragment;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -39,7 +34,7 @@ import java.util.TimeZone;
  * EVERYTHING lives in this one class (no XML, no other files). It READS the "loans" collection
  * and never writes to it. Only the librarian/admin side creates a loan or marks it returned.
  *
- * The list is LIVE: when the librarian marks a book returned, the student's open dialog updates
+ * The list is LIVE: when the librarian marks a book returned, the student's open screen updates
  * by itself.
  *
  * Fields it reads from each document in "loans" (a missing field simply shows as "-"):
@@ -48,13 +43,15 @@ import java.util.TimeZone;
  *   borrowDate, dueDate             timestamps
  *   returnedAt                      timestamp; leave it out until the book comes back
  *
- * Open it with:
- *   BorrowedBooksDialogFragment.newInstance(BorrowedBooksDialogFragment.FILTER_BORROWED)
- *           .show(getSupportFragmentManager(), BorrowedBooksDialogFragment.TAG);
+ * LESSON: it used to be a DialogFragment. Now it extends ListScreenFragment (title bar, back
+ * button and scrolling list come from the base class).
+ *
+ * Open it from the Activity with:
+ *   BorrowedBooksFragment.newInstance(BorrowedBooksFragment.FILTER_BORROWED)
  */
-public class BorrowedBooksDialogFragment extends DialogFragment {
+public class BorrowedBooksFragment extends ListScreenFragment {
 
-    public static final String TAG = "BorrowedBooksDialog";
+    public static final String TAG = "BorrowedBooksFragment";
 
     // Which tab to open on
     public static final String FILTER_BORROWED = "borrowed";
@@ -83,10 +80,10 @@ public class BorrowedBooksDialogFragment extends DialogFragment {
     private ListenerRegistration listener;
 
     /** @param filter FILTER_BORROWED, FILTER_OVERDUE or FILTER_RETURNED */
-    public static BorrowedBooksDialogFragment newInstance(String filter) {
+    public static BorrowedBooksFragment newInstance(String filter) {
         Bundle args = new Bundle();
         args.putString(ARG_FILTER, filter);
-        BorrowedBooksDialogFragment fragment = new BorrowedBooksDialogFragment();
+        BorrowedBooksFragment fragment = new BorrowedBooksFragment();
         fragment.setArguments(args);
         return fragment;
     }
@@ -104,31 +101,21 @@ public class BorrowedBooksDialogFragment extends DialogFragment {
 
     // ================================================================ building the dialog
 
-    @NonNull
     @Override
-    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
+    protected String screenTitle() {
+        return "Borrowed books";
+    }
 
+    /** The tabs go in the fixed header; the rows go in the scrolling list below it. */
+    @Override
+    protected void onBuildHeader(@NonNull LinearLayout header, @Nullable Bundle savedInstanceState) {
         // The tabs: Borrowed | Overdue | Returned (each shows how many it holds)
         tabs = new TabLayout(requireContext());
         tabs.setTabMode(TabLayout.MODE_SCROLLABLE);
         for (String name : TAB_NAMES) {
             tabs.addTab(tabs.newTab().setText(name));
         }
-        root.addView(tabs, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        // The list, rebuilt by render() whenever the data or the tab changes
-        list = new LinearLayout(requireContext());
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(dp(24), dp(8), dp(24), dp(8));
-
-        ScrollView scroll = new ScrollView(requireContext());
-        scroll.setMinimumHeight(dp(180));   // so the dialog doesn't jump in size for short messages
-        scroll.addView(list);
-        root.addView(scroll, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        header.addView(tabs, new LinearLayout.LayoutParams(MATCH, WRAP));
 
         // Which tab to start on: restored after a rotation, otherwise the one the caller asked for
         if (savedInstanceState != null) {
@@ -158,12 +145,6 @@ public class BorrowedBooksDialogFragment extends DialogFragment {
         });
 
         render();   // shows "Loading…" until the first answer arrives
-
-        return new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Borrowed books")
-                .setView(root)
-                .setPositiveButton("Close", null)
-                .create();
     }
 
     @Override
@@ -267,7 +248,7 @@ public class BorrowedBooksDialogFragment extends DialogFragment {
         list.removeAllViews();
 
         if (!loaded) {
-            addMessage(loadFailed ? "Could not load your borrowed books. Check your connection."
+            addMessage(list, loadFailed ? "Could not load your borrowed books. Check your connection."
                     : "Loading…");
             return;
         }
@@ -288,15 +269,12 @@ public class BorrowedBooksDialogFragment extends DialogFragment {
             Collections.sort(shown, (a, b) -> compareDates(a.dueDate, b.dueDate));
         }
 
-        for (int i = 0; i < shown.size(); i++) {
-            if (i > 0) {
-                list.addView(divider());
-            }
-            list.addView(buildRow(shown.get(i), now));
+        for (LoanRow row : shown) {
+            buildRow(row, now);   // adds one card per loan
         }
 
         if (shown.isEmpty()) {
-            addMessage(emptyMessage(filter));
+            addMessage(list, emptyMessage(filter));
         }
     }
 
@@ -309,10 +287,8 @@ public class BorrowedBooksDialogFragment extends DialogFragment {
     }
 
     /** One loan: heading, coloured due/returned line, dates and extra details. */
-    private View buildRow(LoanRow row, long now) {
-        LinearLayout box = new LinearLayout(requireContext());
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(12), 0, dp(12));
+    private void buildRow(LoanRow row, long now) {
+        LinearLayout box = addCard(list);   // one card per loan
 
         addLine(box, makeText(headingOf(row.title, row.author, row.isbn), 16, true, 0), 0);
 
@@ -338,45 +314,6 @@ public class BorrowedBooksDialogFragment extends DialogFragment {
         if (!details.isEmpty()) {
             addLine(box, makeText(details, 14, false, 0), 2);
         }
-        return box;
-    }
-
-    private void addMessage(String message) {
-        TextView view = makeText(message, 15, false, 0);
-        view.setPadding(0, dp(24), 0, dp(24));
-        list.addView(view);
-    }
-
-    private TextView makeText(String text, int sp, boolean bold, int color) {
-        TextView view = new TextView(requireContext());
-        view.setText(text);
-        view.setTextSize(sp);
-        if (bold) {
-            view.setTypeface(null, Typeface.BOLD);
-        }
-        if (color != 0) {
-            view.setTextColor(color);
-        }
-        return view;
-    }
-
-    private void addLine(LinearLayout parent, TextView view, int topMarginDp) {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.topMargin = dp(topMarginDp);
-        parent.addView(view, params);
-    }
-
-    private View divider() {
-        View line = new View(requireContext());
-        line.setBackgroundColor(0x33808080);   // faint grey that suits light and dark themes
-        line.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(1))));
-        return line;
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     // ================================================================ one loan, as read from Firestore

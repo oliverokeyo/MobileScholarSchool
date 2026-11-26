@@ -2,9 +2,7 @@ package com.example.mobilescholarschool.Admin;
 
 import android.text.InputType;
 
-import com.example.mobilescholarschool.HostelTab.HostelBudgetDialogFragment;
-import com.example.mobilescholarschool.HostelTab.HostelChoiceDialogFragment;
-
+import com.example.mobilescholarschool.HostelTab.HostelData;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -39,7 +37,7 @@ public class HostelListDialog extends BaseListDialog {
                         StringBuilder fb = new StringBuilder();
                         if (fac instanceof List) {
                             for (Object o : (List<?>) fac) {
-                                fb.append(fb.length() > 0 ? ", " : "").append(HostelBudgetDialogFragment.facilityLabel(String.valueOf(o)));
+                                fb.append(fb.length() > 0 ? ", " : "").append(HostelData.facilityLabel(String.valueOf(o)));
                             }
                         }
                         String facilities = fb.toString();
@@ -47,7 +45,7 @@ public class HostelListDialog extends BaseListDialog {
                         r.id = d.getId();
                         r.data = d;
                         r.title = AdminRepo.str(d, "name");
-                        String loc = HostelChoiceDialogFragment.locationLabel(AdminRepo.str(d, "locationType"));
+                        String loc = HostelData.locationLabel(AdminRepo.str(d, "locationType"));
                         r.subtitle = (loc == null ? AdminUi.cap(AdminRepo.str(d, "locationType")) : loc) + "  ·  " + AdminRepo.str(d, "area");
                         r.extra = "Warden: " + (AdminRepo.str(d, "wardenName").isEmpty() ? "-" : AdminRepo.str(d, "wardenName"))
                                 + "  ·  " + (facilities.isEmpty() ? "no facilities listed" : facilities);
@@ -85,12 +83,12 @@ public class HostelListDialog extends BaseListDialog {
         if (fac instanceof List) for (Object o : (List<?>) fac) facList.add(String.valueOf(o));
         new FormBuilder(requireContext(), edit ? "Edit hostel" : "Add hostel")
                 .text("name", "Hostel name", edit ? AdminRepo.str(h, "name") : "", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS)
-                .choice("location", "Location", HostelChoiceDialogFragment.LOCATION_VALUES,
-                        HostelChoiceDialogFragment.LOCATION_LABELS, edit ? AdminRepo.str(h, "locationType") : "campus")
+                .choice("location", "Location", HostelData.LOCATION_VALUES,
+                        HostelData.LOCATION_LABELS, edit ? AdminRepo.str(h, "locationType") : "campus")
                 .text("area", "Area / estate", edit ? AdminRepo.str(h, "area") : "", InputType.TYPE_CLASS_TEXT)
                 .text("warden", "Warden's name", edit ? AdminRepo.str(h, "wardenName") : "", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS)
-                .multi("facilities", "Facilities", HostelBudgetDialogFragment.FACILITY_VALUES,
-                        HostelBudgetDialogFragment.FACILITY_LABELS, facList)
+                .multi("facilities", "Facilities", HostelData.FACILITY_VALUES,
+                        HostelData.FACILITY_LABELS, facList)
                 .show(edit ? "Save" : "Add", v -> {
                     String name = v.get("name");
                     if (name.isEmpty() || name.length() > 100) return "Enter the hostel name (up to 100 characters).";
