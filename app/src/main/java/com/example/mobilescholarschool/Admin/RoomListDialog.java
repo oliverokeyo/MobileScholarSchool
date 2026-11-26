@@ -3,8 +3,7 @@ package com.example.mobilescholarschool.Admin;
 import android.os.Bundle;
 import android.text.InputType;
 
-import com.example.mobilescholarschool.HostelTab.HostelChoiceDialogFragment;
-
+import com.example.mobilescholarschool.HostelTab.HostelData;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
@@ -106,10 +105,10 @@ public class RoomListDialog extends BaseListDialog {
         boolean edit = room != null;
         new FormBuilder(requireContext(), edit ? "Edit room" : "Add room")
                 .text("number", "Room number", edit ? AdminRepo.str(room, "roomNumber") : "", InputType.TYPE_CLASS_TEXT)
-                .choice("type", "Room type", HostelChoiceDialogFragment.ROOM_TYPE_VALUES,
-                        HostelChoiceDialogFragment.ROOM_TYPE_LABELS, edit ? AdminRepo.str(room, "roomType") : "single")
-                .choice("sharing", "Sharing", HostelChoiceDialogFragment.SHARING_VALUES,
-                        HostelChoiceDialogFragment.SHARING_LABELS, edit ? AdminRepo.str(room, "sharing") : "private")
+                .choice("type", "Room type", HostelData.ROOM_TYPE_VALUES,
+                        HostelData.ROOM_TYPE_LABELS, edit ? AdminRepo.str(room, "roomType") : "single")
+                .choice("sharing", "Sharing", HostelData.SHARING_VALUES,
+                        HostelData.SHARING_LABELS, edit ? AdminRepo.str(room, "sharing") : "private")
                 .text("rent", "Rent per month (Ksh, per student)", edit ? String.valueOf(AdminRepo.num(room, "rentPerMonth")) : "", InputType.TYPE_CLASS_NUMBER)
                 .text("capacity", "Capacity (number of beds)", edit ? String.valueOf(Math.max(1, AdminRepo.num(room, "capacity"))) : "1", InputType.TYPE_CLASS_NUMBER)
                 .show(edit ? "Save" : "Add", v -> {

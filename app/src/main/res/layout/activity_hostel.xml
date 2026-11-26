@@ -78,43 +78,15 @@
                 app:layout_constraintStart_toEndOf="@id/imgHostel"
                 app:layout_constraintTop_toTopOf="@id/imgHostel" />
 
-            <!-- Java replaces this text with "Student ID: ..." as soon as the screen opens -->
-            <TextView
-                android:id="@+id/txtViewStudentID"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_xs"
-                android:text="Student ID:(SB06/SR/1234/90)"
-                android:textAppearance="@style/TextAppearance.App.Caption"
-                app:layout_constraintEnd_toEndOf="@id/txtViewWelcome"
-                app:layout_constraintStart_toStartOf="@id/txtViewWelcome"
-                app:layout_constraintTop_toBottomOf="@id/txtViewWelcome" />
-
-            <!-- Sits under the LOWEST header view, so the search box can never overlap -->
+            <!-- Sits under the LOWEST header view, so the next section can never overlap it -->
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/barrierHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:barrierDirection="bottom"
-                app:constraint_referenced_ids="imgHostel,txtViewStudentID,imgNotifications" />
+                app:constraint_referenced_ids="imgHostel,txtViewWelcome,imgNotifications" />
 
-            <!-- ===================== SEARCH ===================== -->
-            <!-- A plain EditText (same id as before); look comes from the theme -->
-            <EditText
-                android:id="@+id/editTxtTxt"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_margin"
-                android:layout_marginTop="@dimen/space_lg"
-                android:layout_marginEnd="@dimen/screen_margin"
-                android:drawableStart="@drawable/ic_search"
-                android:hint="Search hostel by name or location"
-                android:importantForAutofill="no"
-                android:inputType="text"
-                android:maxLines="1"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/barrierHeader" />
+            <!-- The search bar moved INSIDE the "Find a Hostel" screen (HostelSearchFragment). -->
 
             <!-- ===================== OVERVIEW ===================== -->
 
@@ -127,7 +99,7 @@
                 android:text="My Accommodation"
                 android:textAppearance="@style/TextAppearance.App.Section"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/editTxtTxt" />
+                app:layout_constraintTop_toBottomOf="@id/barrierHeader" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardBookingStatus"
@@ -179,7 +151,81 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/cardBookingStatus" />
 
-            <!-- Row 1: Hostel Location -->
+            <!-- Row 1: Find a Hostel (the search bar + every hostel) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardFindHostel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/screen_margin"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtViewAccomodation">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        android:id="@+id/imgFindHostel"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:background="@drawable/bg_circle_icon_light"
+                        android:importantForAccessibility="no"
+                        android:padding="10dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_search"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/icon_dark" />
+
+                    <TextView
+                        android:id="@+id/txtViewFindHostel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="Find a Hostel"
+                        android:textAppearance="@style/TextAppearance.App.CardTitle"
+                        app:layout_constraintBottom_toTopOf="@id/txtViewFindHostelDescription"
+                        app:layout_constraintEnd_toStartOf="@id/imgFindHostelArrow"
+                        app:layout_constraintStart_toEndOf="@id/imgFindHostel"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/txtViewFindHostelDescription"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:layout_marginBottom="@dimen/space_md"
+                        android:text="Search by name or location and browse every hostel."
+                        android:textAppearance="@style/TextAppearance.App.Body"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="@id/txtViewFindHostel"
+                        app:layout_constraintStart_toStartOf="@id/txtViewFindHostel"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewFindHostel" />
+
+                    <ImageView
+                        android:id="@+id/imgFindHostelArrow"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="@dimen/space_md"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_forward"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/text_muted" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Row 2: Hostel Location -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardLocation"
                 android:layout_width="0dp"
@@ -189,7 +235,7 @@
                 android:layout_marginEnd="@dimen/screen_margin"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtViewAccomodation">
+                app:layout_constraintTop_toBottomOf="@id/cardFindHostel">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
@@ -225,14 +271,13 @@
                         app:layout_constraintTop_toTopOf="parent"
                         app:layout_constraintVertical_chainStyle="packed" />
 
-                    <!-- Keep android:text: Java reads it as the "Any" wording -->
                     <TextView
                         android:id="@+id/txtViewLocationDescription"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/space_xs"
                         android:layout_marginBottom="@dimen/space_md"
-                        android:text="Choose campus, nearby or off-campus accommodation."
+                        android:text="See every hostel and where it is."
                         android:textAppearance="@style/TextAppearance.App.Body"
                         android:textSize="13sp"
                         app:layout_constraintBottom_toBottomOf="parent"
@@ -254,7 +299,7 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Row 2: Sharing Preference (Java does not bind imgPreference; kept for the look) -->
+            <!-- Row 3: Sharing Preference -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardPreference"
                 android:layout_width="0dp"
@@ -306,7 +351,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/space_xs"
                         android:layout_marginBottom="@dimen/space_md"
-                        android:text="Choose private or shared accommodation."
+                        android:text="Browse private and shared rooms."
                         android:textAppearance="@style/TextAppearance.App.Body"
                         android:textSize="13sp"
                         app:layout_constraintBottom_toBottomOf="parent"
@@ -328,7 +373,7 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Row 3: Room Type -->
+            <!-- Row 4: Room Type -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardRoom"
                 android:layout_width="0dp"
@@ -380,7 +425,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/space_xs"
                         android:layout_marginBottom="@dimen/space_md"
-                        android:text="Bedsitter, single room, one-bedroom or shared room."
+                        android:text="Bedsitters, single rooms, one-bedrooms and shared rooms."
                         android:textAppearance="@style/TextAppearance.App.Body"
                         android:textSize="13sp"
                         app:layout_constraintBottom_toBottomOf="parent"
@@ -402,7 +447,7 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Row 4: Budget -->
+            <!-- Row 5: Budget -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardBudget"
                 android:layout_width="0dp"
@@ -454,7 +499,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/space_xs"
                         android:layout_marginBottom="@dimen/space_md"
-                        android:text="Compare rent and available facilities."
+                        android:text="Enter your maximum rent and get suggestions."
                         android:textAppearance="@style/TextAppearance.App.Body"
                         android:textSize="13sp"
                         app:layout_constraintBottom_toBottomOf="parent"
@@ -476,23 +521,97 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Search: lists the hostels that fit the four choices above -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSearchHostels"
-                style="@style/Widget.App.Button.Primary"
+            <!-- Row 6: Custom Search (radio buttons, budget and facilities together) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardCustomSearch"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/screen_margin"
-                android:layout_marginTop="@dimen/space_lg"
+                android:layout_marginTop="@dimen/space_md"
                 android:layout_marginEnd="@dimen/screen_margin"
-                android:text="Search hostels"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/cardBudget" />
+                app:layout_constraintTop_toBottomOf="@id/cardBudget">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        android:id="@+id/imgCustomSearch"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:background="@drawable/bg_circle_icon_light"
+                        android:importantForAccessibility="no"
+                        android:padding="10dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_custom"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/icon_dark" />
+
+                    <TextView
+                        android:id="@+id/txtViewCustomSearch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:layout_marginTop="@dimen/space_md"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:text="Custom Search"
+                        android:textAppearance="@style/TextAppearance.App.CardTitle"
+                        app:layout_constraintBottom_toTopOf="@id/txtViewCustomSearchDescription"
+                        app:layout_constraintEnd_toStartOf="@id/imgCustomSearchArrow"
+                        app:layout_constraintStart_toEndOf="@id/imgCustomSearch"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/txtViewCustomSearchDescription"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:layout_marginBottom="@dimen/space_md"
+                        android:text="Combine location, sharing, room type, budget and facilities."
+                        android:textAppearance="@style/TextAppearance.App.Body"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="@id/txtViewCustomSearch"
+                        app:layout_constraintStart_toStartOf="@id/txtViewCustomSearch"
+                        app:layout_constraintTop_toBottomOf="@id/txtViewCustomSearch" />
+
+                    <ImageView
+                        android:id="@+id/imgCustomSearchArrow"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="@dimen/space_md"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_forward"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="@color/text_muted" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- ===================== FRAGMENT CONTAINER ===================== -->
+    <!-- Every full-screen Fragment (Find a book, the hostel screens...) is placed in here.
+         It sits ABOVE the scrolling content, stops at the bottom nav so the tabs stay usable,
+         and is GONE until Java opens a Fragment in it. -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragmentContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- ===================== BOTTOM NAV ===================== -->
     <include

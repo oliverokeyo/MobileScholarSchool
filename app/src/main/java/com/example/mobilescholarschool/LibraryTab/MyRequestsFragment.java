@@ -1,26 +1,21 @@
 package com.example.mobilescholarschool.LibraryTab;
 
-import android.app.Dialog;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.DialogFragment;
 
+import com.example.mobilescholarschool.Components.ListScreenFragment;
 import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
 import com.example.mobilescholarschool.Data.BookRequestRepository;       // NEW
 import com.example.mobilescholarschool.Data.DataChangeNotifier;          // NEW
 import com.example.mobilescholarschool.Data.DbExecutor;                  // NEW
 import com.example.mobilescholarschool.Data.SyncState;                   // NEW
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -38,9 +33,24 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 
-public class MyRequestsDialogFragment extends DialogFragment {
+/**
+ * "My requests" as a full screen: the student's book requests, in tabs
+ * (All | Pending | Approved | Rejected), kept live from two sources:
+ *   - the server ("bookRequests" in Firestore), and
+ *   - this phone's own database (requests not sent yet, or refused).
+ *
+ * It only READS. The librarian decides Pending / Approved / Rejected on the admin side.
+ *
+ * LESSON: it used to be a DialogFragment. Now it extends ListScreenFragment, so the title bar,
+ * the back button and the scrolling list come from the base class, and this file only holds
+ * what is special about requests: the tabs, the two data sources and how a row looks.
+ *
+ * Open it from the Activity with:
+ *   MyRequestsFragment.newInstance(MyRequestsFragment.FILTER_ALL)
+ */
+public class MyRequestsFragment extends ListScreenFragment {
 
-    public static final String TAG = "MyRequestsDialog";
+    public static final String TAG = "MyRequestsFragment";
 
     // Which tab to open on. The values match the status text stored in Firestore.
     public static final String FILTER_ALL = "all";
@@ -83,41 +93,31 @@ public class MyRequestsDialogFragment extends DialogFragment {
     private ListenerRegistration listener;
 
     /** @param filter FILTER_ALL, FILTER_PENDING, FILTER_APPROVED or FILTER_REJECTED */
-    public static MyRequestsDialogFragment newInstance(String filter) {
+    public static MyRequestsFragment newInstance(String filter) {
         Bundle args = new Bundle();
         args.putString(ARG_FILTER, filter);
-        MyRequestsDialogFragment fragment = new MyRequestsDialogFragment();
+        MyRequestsFragment fragment = new MyRequestsFragment();
         fragment.setArguments(args);
         return fragment;
     }
 
     // ================================================================ building the dialog
 
-    @NonNull
     @Override
-    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
+    protected String screenTitle() {
+        return "My requests";
+    }
 
+    /** The tabs go in the fixed header; the rows go in the scrolling list below it. */
+    @Override
+    protected void onBuildHeader(@NonNull LinearLayout header, @Nullable Bundle savedInstanceState) {
         // The tabs: All | Pending | Approved | Rejected (each shows how many it holds)
         tabs = new TabLayout(requireContext());
         tabs.setTabMode(TabLayout.MODE_SCROLLABLE);
         for (String name : TAB_NAMES) {
             tabs.addTab(tabs.newTab().setText(name));
         }
-        root.addView(tabs, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        // The list of requests, rebuilt by render() whenever the data or the tab changes
-        list = new LinearLayout(requireContext());
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(dp(24), dp(8), dp(24), dp(8));
-
-        ScrollView scroll = new ScrollView(requireContext());
-        scroll.setMinimumHeight(dp(180));   // so the dialog doesn't jump in size for short messages
-        scroll.addView(list);
-        root.addView(scroll, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        header.addView(tabs, new LinearLayout.LayoutParams(MATCH, WRAP));
 
         // Which tab to start on: restored after a rotation, otherwise the one the caller asked for
         if (savedInstanceState != null) {
@@ -147,12 +147,6 @@ public class MyRequestsDialogFragment extends DialogFragment {
         });
 
         render();   // shows "Loading…" until the first answer arrives
-
-        return new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("My requests")
-                .setView(root)
-                .setPositiveButton("Close", null)
-                .create();
     }
 
     @Override
@@ -311,7 +305,7 @@ public class MyRequestsDialogFragment extends DialogFragment {
         // CHANGED: "ready" once EITHER source has answered, so offline the saved requests still show
         boolean ready = loaded || localLoaded;
         if (!ready) {
-            addMessage(loadFailed ? "Could not load your requests. Check your connection."
+            addMessage(list, loadFailed ? "Could not load your requests. Check your connection."
                     : "Loading…");
             return;
         }
@@ -322,15 +316,12 @@ public class MyRequestsDialogFragment extends DialogFragment {
             if (!matchesFilter(filter, row.status)) {
                 continue;
             }
-            if (shown > 0) {
-                list.addView(divider());
-            }
-            list.addView(buildRow(row));
+            buildRow(row);
             shown++;
         }
 
         if (shown == 0) {
-            addMessage(emptyMessage(filter));
+            addMessage(list, emptyMessage(filter));
         }
     }
 
@@ -343,10 +334,8 @@ public class MyRequestsDialogFragment extends DialogFragment {
     }
 
     /** One request: heading, coloured status, dates, extra details and the librarian's note. */
-    private View buildRow(RequestRow row) {
-        LinearLayout box = new LinearLayout(requireContext());
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(12), 0, dp(12));
+    private void buildRow(RequestRow row) {
+        LinearLayout box = addCard(list);   // one card per request
 
         addLine(box, makeText(headingOf(row.title, row.author, row.isbn), 16, true, 0), 0);
 
@@ -368,45 +357,6 @@ public class MyRequestsDialogFragment extends DialogFragment {
             addLine(box, makeText((row.notSent ? "Reason: " : "Librarian note: ")
                     + row.adminNote.trim(), 14, false, 0), 6);
         }
-        return box;
-    }
-
-    private void addMessage(String message) {
-        TextView view = makeText(message, 15, false, 0);
-        view.setPadding(0, dp(24), 0, dp(24));
-        list.addView(view);
-    }
-
-    private TextView makeText(String text, int sp, boolean bold, int color) {
-        TextView view = new TextView(requireContext());
-        view.setText(text);
-        view.setTextSize(sp);
-        if (bold) {
-            view.setTypeface(null, Typeface.BOLD);
-        }
-        if (color != 0) {
-            view.setTextColor(color);
-        }
-        return view;
-    }
-
-    private void addLine(LinearLayout parent, TextView view, int topMarginDp) {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.topMargin = dp(topMarginDp);
-        parent.addView(view, params);
-    }
-
-    private View divider() {
-        View line = new View(requireContext());
-        line.setBackgroundColor(0x33808080);   // faint grey that suits light and dark themes
-        line.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(1))));
-        return line;
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     // ================================================================ one request, as read from Firestore

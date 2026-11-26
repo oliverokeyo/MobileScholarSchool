@@ -96,24 +96,7 @@
                 app:barrierDirection="bottom"
                 app:constraint_referenced_ids="imgLibrary,txtViewLibraryDescription" />
 
-            <!-- ===================== SEARCH ===================== -->
-            <!-- A plain EditText (same id as before): Java only needs an EditText.
-                 The look comes from the theme's editTextStyle. -->
-            <EditText
-                android:id="@+id/editTxtTxt"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_margin"
-                android:layout_marginTop="@dimen/space_lg"
-                android:layout_marginEnd="@dimen/screen_margin"
-                android:drawableStart="@drawable/ic_search"
-                android:hint="@string/lib_search_hint"
-                android:importantForAutofill="no"
-                android:inputType="text"
-                android:maxLines="1"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/barrierHeader" />
+            <!-- The search bar moved INSIDE the "Find a Book" screen (FindBookFragment). -->
 
             <!-- ===================== OVERVIEW ===================== -->
 
@@ -126,7 +109,7 @@
                 android:text="@string/lib_overview"
                 android:textAppearance="@style/TextAppearance.App.Section"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/editTxtTxt" />
+                app:layout_constraintTop_toBottomOf="@id/barrierHeader" />
 
             <!-- Three equal tiles. 16dp row margin + 8dp tile margin = 24dp, the screen margin.
                  Padding sits on the number and label (not the tile), so almost the whole
@@ -564,6 +547,20 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- ===================== FRAGMENT CONTAINER ===================== -->
+    <!-- Every full-screen Fragment (Find a book, the hostel screens...) is placed in here.
+         It sits ABOVE the scrolling content, stops at the bottom nav so the tabs stay usable,
+         and is GONE until Java opens a Fragment in it. -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragmentContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- ===================== BOTTOM NAV ===================== -->
     <include
