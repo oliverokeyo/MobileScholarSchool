@@ -182,8 +182,7 @@ public class ProfileActivity extends AppCompatActivity {
         btnChange.setOnClickListener(v -> showEditDialog());
         btnPrintSummary.setOnClickListener(v -> printSummary());
         if (provisional) {
-            // CHANGED: from a hard-coded string to a resource, so it can be translated
-            btnSignOut.setText(R.string.btn_cancel_registration);   // there is no account to sign out of yet
+            btnSignOut.setText("Cancel registration");   // there is no account to sign out of yet
         }
         btnSignOut.setOnClickListener(v -> signOut());
     }
@@ -583,7 +582,7 @@ public class ProfileActivity extends AppCompatActivity {
     /**
      * CHANGED: warns first if something saved on this phone has not reached the server.
      * Unsent items are KEPT and are delivered the next time this student signs in while online.
-     * <p>
+     *
      * For a student whose sign-up is still waiting there is no account to sign out of, so the
      * same button becomes "Cancel registration": it throws the waiting sign-up away.
      */
