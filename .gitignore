@@ -36,5 +36,5 @@ app/google-services.json
 # Android Studio settings inside app
 app/.idea/
 
-# Safaricom Daraja configuration
-/app/src/main/java/com/example/mobilescholarschool/PaymentsTab/MpesaConfig.java
+# M-Pesa configuration
+app/src/main/java/com/example/mobilescholarschool/PaymentsTab/MpesaConfig.java

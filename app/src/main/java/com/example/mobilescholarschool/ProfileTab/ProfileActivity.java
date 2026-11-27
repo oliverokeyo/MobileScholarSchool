@@ -109,7 +109,7 @@ public class ProfileActivity extends AppCompatActivity {
     /**
      * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
      * navigator first: if the user is dragging sideways it takes over (returns true) and the
-     * views underneath never see that gesture. Otherwise everything works exactly as before.
+     * views underneath never see that gesture. Otherwise, everything works exactly as before.
      */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {

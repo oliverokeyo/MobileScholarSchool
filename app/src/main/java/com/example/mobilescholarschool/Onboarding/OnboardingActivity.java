@@ -17,8 +17,6 @@ import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.example.mobilescholarschool.SignUp.SignUpActivity;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.tabs.TabLayout;
-import com.google.android.material.tabs.TabLayoutMediator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +46,7 @@ public class OnboardingActivity extends AppCompatActivity {
         authButtons = findViewById(R.id.authButtons);
         MaterialButton btnSignIn = findViewById(R.id.btnSignIn);
         MaterialButton btnSignUp = findViewById(R.id.btnSignUp);
-        TabLayout dotsIndicator = findViewById(R.id.dotsIndicator);
+        OnboardingPageIndicator pageIndicator = findViewById(R.id.pageIndicator);
         View bottomPanel = findViewById(R.id.bottomPanel);
 
         applyWindowInsets(bottomPanel);
@@ -60,16 +58,10 @@ public class OnboardingActivity extends AppCompatActivity {
         // 2) Adapter
         viewPager.setAdapter(new OnboardingAdapter(items));
 
-        // 3) Page indicators: TabLayoutMediator links one tab per page and keeps them
-        // in sync.
-        new TabLayoutMediator(dotsIndicator, viewPager, (tab, position) -> {
-        }).attach();
-        for (int i = 0; i < dotsIndicator.getTabCount(); i++) {
-            TabLayout.Tab tab = dotsIndicator.getTabAt(i);
-            if (tab != null) {
-                tab.view.setClickable(false); // indicators are display-only
-            }
-        }
+        // 3) Page indicator: one dot per page. It reads the pager's position every frame,
+        // so it always matches the visible page and animates as the pages move.
+        // It must be attached AFTER the adapter is set (it counts the pages).
+        pageIndicator.attachToViewPager(viewPager);
 
         // 4) React to swiping
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -123,13 +115,12 @@ public class OnboardingActivity extends AppCompatActivity {
     }
 
     /**
-     * CHANGED. Pages before the last: Skip only (swipe to continue).
+     * Pages before the last: Skip only (swipe to continue).
      * Last page: Sign In + Sign Up buttons appear, and Skip is hidden.
      *
      * The buttons use INVISIBLE rather than GONE on purpose: an invisible view
-     * still takes
-     * up its space, so the page indicators stay put instead of jumping on the last
-     * page.
+     * still takes up its space, so the page indicator stays put instead of
+     * jumping on the last page.
      */
     private void updateControls(int position) {
         boolean isLast = position == pageCount - 1;
