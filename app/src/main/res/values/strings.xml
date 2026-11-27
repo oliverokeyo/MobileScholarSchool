@@ -45,6 +45,8 @@
     <string name="btn_print_summary">Print my summary</string>
     <string name="print_summary_title">Student summary</string>
     <string name="btn_sign_out">Sign Out</string>
+    <!-- NEW: replaces Sign Out for a student whose offline sign-up is still waiting -->
+    <string name="btn_cancel_registration">Cancel registration</string>
     <string name="title_edit_details">Edit Details</string>
     <string name="btn_save">Save</string>
     <string name="btn_cancel">Cancel</string>
@@ -181,6 +183,9 @@
     <!-- Onboarding screen -->
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
+    <!-- NEW: spoken by TalkBack for the page indicator, e.g. "Page 2 of 4".
+         %1$d = this page's number, %2$d = total pages. -->
+    <string name="onboarding_page_indicator">Page %1$d of %2$d</string>
     <string name="onboarding_title_campus">Your Campus, One Place</string>
     <string name="onboarding_desc_campus">Access essential campus services, stay updated and manage your student life from one convenient place.</string>
     <string name="onboarding_title_library">Your library, anywhere</string>

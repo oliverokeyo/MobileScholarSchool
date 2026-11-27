@@ -40,8 +40,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Bottom panel: Sign In / Sign Up buttons (last page only) with the page indicators
-         underneath. There is no Next button: the student swipes between pages. -->
+    <!-- Bottom panel, top to bottom: the page indicator, then the Sign In / Sign Up buttons
+         (last page only). There is no Next button: the student swipes between pages. -->
     <LinearLayout
         android:id="@+id/bottomPanel"
         android:layout_width="0dp"
@@ -55,8 +55,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
+        <!-- Page indicator: draws its own circles and pill, centred, in the colors
+             onboarding_dot_default / onboarding_dot_selected. -->
+        <com.example.mobilescholarschool.Onboarding.OnboardingPageIndicator
+            android:id="@+id/pageIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="@dimen/space_md" />
+
         <!-- INVISIBLE (not GONE) on pages 1-3: it keeps its space, so the
-             indicators below never jump when the last page appears. -->
+             indicator above never jumps when the last page appears. -->
         <LinearLayout
             android:id="@+id/authButtons"
             android:layout_width="match_parent"
@@ -82,21 +91,6 @@
                 android:layout_weight="1"
                 android:text="@string/btn_sign_up" />
         </LinearLayout>
-
-        <!-- Page indicators: look comes from @drawable/tab_indicator_selector -->
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/dotsIndicator"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_md"
-            android:background="@android:color/transparent"
-            app:tabBackground="@drawable/tab_indicator_selector"
-            app:tabGravity="center"
-            app:tabIndicatorHeight="0dp"
-            app:tabMinWidth="0dp"
-            app:tabPaddingEnd="0dp"
-            app:tabPaddingStart="0dp"
-            app:tabRippleColor="@android:color/transparent" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -109,20 +109,7 @@ public class ProfileActivity extends AppCompatActivity {
     /**
      * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
      * navigator first: if the user is dragging sideways it takes over (returns true) and the
-     * views underneath never see that gesture. Otherwise everything works exactly as before.
-     */
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (swipeNavigator != null && swipeNavigator.onTouchEvent(ev)) {
-            return true;
-        }
-        return super.dispatchTouchEvent(ev);
-    }
-
-    /**
-     * Every touch on this screen passes through here BEFORE any view sees it. We ask the swipe
-     * navigator first: if the user is dragging sideways it takes over (returns true) and the
-     * views underneath never see that gesture. Otherwise everything works exactly as before.
+     * views underneath never see that gesture. Otherwise, everything works exactly as before.
      */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -195,7 +182,8 @@ public class ProfileActivity extends AppCompatActivity {
         btnChange.setOnClickListener(v -> showEditDialog());
         btnPrintSummary.setOnClickListener(v -> printSummary());
         if (provisional) {
-            btnSignOut.setText("Cancel registration");   // there is no account to sign out of yet
+            // CHANGED: from a hard-coded string to a resource, so it can be translated
+            btnSignOut.setText(R.string.btn_cancel_registration);   // there is no account to sign out of yet
         }
         btnSignOut.setOnClickListener(v -> signOut());
     }
@@ -595,7 +583,7 @@ public class ProfileActivity extends AppCompatActivity {
     /**
      * CHANGED: warns first if something saved on this phone has not reached the server.
      * Unsent items are KEPT and are delivered the next time this student signs in while online.
-     *
+     * <p>
      * For a student whose sign-up is still waiting there is no account to sign out of, so the
      * same button becomes "Cancel registration": it throws the waiting sign-up away.
      */
