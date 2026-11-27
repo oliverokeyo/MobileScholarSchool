@@ -24,8 +24,8 @@ import java.util.List;
 public class OnboardingActivity extends AppCompatActivity {
 
     private ViewPager2 viewPager;
-    // There is no Next button. Pages are changed by swiping, and the page
-    // indicator shows where you are.
+    // CHANGED: btnNext is gone. Pages are changed by swiping, and the dots show
+    // where you are.
     private MaterialButton btnSkip;
     private View authButtons; // the row holding Sign In + Sign Up (last page only)
     private int pageCount;
