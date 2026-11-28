@@ -3,6 +3,7 @@ package com.example.mobilescholarschool.Admin;
 import android.app.Activity;
 import android.content.Intent;
 
+import com.example.mobilescholarschool.Components.SessionUser;   // NEW
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -57,12 +58,15 @@ public final class AdminSession {
     }
 
     /** Signs out and opens Sign In with an empty back stack (Back cannot return to the admin screens). */
-    public static void signOutToSignIn(Activity activity) {
-        FirebaseAuth.getInstance().signOut();
-        Intent intent = new Intent(activity, SignInActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        activity.startActivity(intent);
-        activity.finish();
+    public static void signOutToSignIn(final Activity activity) {
+        // CHANGED: through the ONE complete sign-out (offline session, waiting registration,
+        // cached rows, Firebase), and Sign In opens only AFTER it has finished.
+        SessionUser.signOut(activity.getApplicationContext(), SessionUser.uid(activity), () -> {
+            Intent intent = new Intent(activity, SignInActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            activity.startActivity(intent);
+            activity.finish();
+        });
     }
 
     /** A missing or unknown value means "active", so profiles made before this feature keep working. */

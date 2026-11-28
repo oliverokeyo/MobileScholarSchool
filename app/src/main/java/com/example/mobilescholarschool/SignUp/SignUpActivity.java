@@ -33,6 +33,8 @@ import com.example.mobilescholarschool.HomeTab.HomeActivity;                 // 
 import com.example.mobilescholarschool.R;
 import com.example.mobilescholarschool.Components.PasswordToggle;
 import com.example.mobilescholarschool.Components.PendingRegistrationStore;   // NEW
+import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
+import com.example.mobilescholarschool.Components.OnboardingPrefs;           // NEW
 import com.example.mobilescholarschool.SignIn.SignInActivity;
 import com.example.mobilescholarschool.Sync.SyncScheduler;                    // CHANGED: one shared scheduler
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -307,9 +309,24 @@ public class SignUpActivity extends AppCompatActivity {
                 return;
             }
             // A different account is signed in: sign it out so we never attach this
-            // profile to the wrong person
-            mAuth.signOut();
+            // profile to the wrong person.
+            // CHANGED: through the ONE complete sign-out (it also ends an offline session, drops a
+            // waiting registration and forgets the old student's cached rows), and the new account
+            // is created only AFTER that has finished, never while the old one is half signed out.
+            SessionUser.signOut(getApplicationContext(), existing.getUid(),
+                    () -> createFirebaseUser(fullName, idNumber, registrationNo, emailAddress,
+                            password, gender, department, course));
+            return;
         }
+
+        createFirebaseUser(fullName, idNumber, registrationNo, emailAddress, password,
+                gender, department, course);
+    }
+
+    /** NEW: the part of createAccount that talks to Firebase (split out so it can run after sign-out). */
+    private void createFirebaseUser(String fullName, String idNumber, String registrationNo,
+                                    String emailAddress, String password,
+                                    String gender, String department, String course) {
 
         mAuth.createUserWithEmailAndPassword(emailAddress, password)
                 .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
@@ -369,6 +386,10 @@ public class SignUpActivity extends AppCompatActivity {
                             // CHANGED: Firebase has already signed the new user in, so we keep
                             // that session and open Home (it used to sign out and ask them to
                             // log in again).
+                            // NEW (account isolation): this student is now the ONLY account on
+                            // the phone, so cached rows of anyone else are removed
+                            DbExecutor.run(() -> AppDatabase.get(getApplicationContext())
+                                    .clearSyncedExcept(user.getUid()));
                             goToHome();
                         } else {
                             Log.e("SignUpActivity", "Profile save failed", task.getException());
@@ -437,6 +458,7 @@ public class SignUpActivity extends AppCompatActivity {
      * Offline: there is no account yet, so Home shows a waiting state (see HomeActivity).
      */
     private void goToHome() {
+        OnboardingPrefs.markCompleted(this);   // NEW: someone who registered has certainly seen the intro
         Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

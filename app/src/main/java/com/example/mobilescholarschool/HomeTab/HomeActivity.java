@@ -24,6 +24,8 @@ import androidx.lifecycle.ViewModelProvider;                                // N
 import com.example.mobilescholarschool.Admin.AdminSession;                // NEW (admin)
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.OfflineBanner;           // NEW (offline sign-in)
+import com.example.mobilescholarschool.Components.OnlineReauthDialog;      // NEW (offline sign-in)
 import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
 import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
@@ -36,6 +38,7 @@ import com.example.mobilescholarschool.LibraryTab.BorrowedBooksFragment;  // the
 import com.example.mobilescholarschool.Sync.SyncScheduler;               // NEW
 import com.example.mobilescholarschool.PaymentsTab.PaymentsViewModel;    // NEW: the student's payments
 import com.example.mobilescholarschool.R;
+import com.example.mobilescholarschool.Security.OfflineSession;           // NEW (offline sign-in)
 import com.example.mobilescholarschool.SignUp.SignUpActivity;            // NEW
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;    // NEW (admin)
@@ -102,6 +105,25 @@ public class HomeActivity extends AppCompatActivity {
     // NEW: used only while an offline sign-up is waiting for internet
     private FirebaseAuth.AuthStateListener accountCreatedListener;
     private Snackbar waitingBanner;
+
+    // NEW (offline sign-in): true while the student is on a LOCAL-ONLY offline session (no Firebase user)
+    private boolean offlineMode = false;
+    // The newest booking saved on this phone, shown in offline mode (the server is not reachable)
+    private HostelBookingRepository.Booking offlineLatestBooking;
+    private OfflineBanner offlineBanner;
+
+    // NEW: what happens when the student signs in to the server from the offline banner
+    private final OnlineReauthDialog.Callback reauthCallback = new OnlineReauthDialog.Callback() {
+        @Override
+        public void onSignedIn() {
+            recreate();   // a real Firebase user exists now: reload Home as the real thing
+        }
+
+        @Override
+        public void onAccessRevoked() {
+            goToSignIn();
+        }
+    };
 
     // NEW: fires when the local database changes (profile copy, or a booking saved/delivered)
     private final DataChangeNotifier.Listener dataListener = table -> {
@@ -190,6 +212,9 @@ public class HomeActivity extends AppCompatActivity {
         // once we know there is a signed-in student to load it for.
         paymentsViewModel = new ViewModelProvider(this).get(PaymentsViewModel.class);
 
+        // NEW (offline sign-in): the "Offline mode" strip above the tab bar
+        offlineBanner = new OfflineBanner(this, reauthCallback);
+
         ImageButton btnNotifications = findViewById(R.id.imgNotifications);
         btnNotifications.setOnClickListener(v ->
                 Toast.makeText(this, R.string.notifications_none, Toast.LENGTH_SHORT).show());
@@ -211,8 +236,19 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            // NEW: a real Firebase session always replaces a local-only offline session
+            OfflineSession.end();
+            offlineMode = false;
+        }
+        offlineBanner.start();   // NEW: shows the strip only while an offline session is active
+
         if (user == null) {
-            showWaitingForAccount();   // NEW: no account yet, only a saved registration
+            if (OfflineSession.isActive()) {
+                showOfflineMode();         // NEW: signed in offline with the saved password
+            } else {
+                showWaitingForAccount();   // no account yet, only a saved registration
+            }
             return;
         }
         // NEW (admin): an administrator has no student profile, so send them to the admin side.
@@ -254,6 +290,7 @@ public class HomeActivity extends AppCompatActivity {
         }
         paymentsViewModel.removeListener(paymentsListener);   // NEW
         DataChangeNotifier.unregister(dataListener);   // NEW
+        offlineBanner.stop();                          // NEW (offline sign-in)
         if (accountCreatedListener != null) {          // NEW
             FirebaseAuth.getInstance().removeAuthStateListener(accountCreatedListener);
             accountCreatedListener = null;
@@ -337,6 +374,46 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
+    // ================================================================ offline sign-in (NEW)
+
+    /**
+     * LESSON: OFFLINE MODE IS A VIEW, NOT A LOGIN. The student typed the right password, so we show
+     * what is saved on THIS phone (name, student number, hostel booking). We do NOT open any
+     * Firestore listener: with no Firebase user the server would refuse them anyway, and we must not
+     * rely on its cache to bypass that. Fees, loans and units live on the server, so those cards
+     * say so. Tapping the amber strip (once the phone is online again) asks for the password,
+     * signs in to Firebase for real, and recreate() reloads this screen with live data.
+     */
+    private void showOfflineMode() {
+        offlineMode = true;
+
+        for (TextView headline : new TextView[]{txtViewBalance, txtViewLibraryUpdates,
+                textViewUnitStatus}) {
+            headline.setText("Needs internet");
+        }
+        for (TextView details : new TextView[]{txtViewFeeDetails, txtViewLibraryDetails,
+                txtViewUnitDetails}) {
+            details.setText("Sign in online to see this. Offline mode shows only what is saved "
+                    + "on this phone.");
+        }
+        showWelcomeForWaiting();
+        showStudentId();
+
+        // Name, student number and hostel booking come from the LOCAL database
+        DataChangeNotifier.register(dataListener);
+        loadLocalProfile();
+        loadUnsentHostelBooking();
+    }
+
+    /** Back to the sign-in screen, forgetting this screen (used when the server revokes access). */
+    private void goToSignIn() {
+        Intent intent = new Intent(this,
+                com.example.mobilescholarschool.SignIn.SignInActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
     /** The greeting for a student who has no Firebase user yet. */
     private void showWelcomeForWaiting() {
         String name = profileName != null && !profileName.trim().isEmpty()
@@ -350,6 +427,7 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        OfflineSession.touch();   // NEW: a student who is using the app is not idle
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             showWelcome(user);
@@ -441,12 +519,10 @@ public class HomeActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .setPositiveButton("OK", (d, which) -> {
                     // Same clean sign-out the Profile screen uses: forget the session, open Sign In
-                    FirebaseAuth.getInstance().signOut();
-                    Intent intent = new Intent(this,
-                            com.example.mobilescholarschool.SignIn.SignInActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
+                    // CHANGED: the ONE complete sign-out (Firebase + offline session + waiting
+                    // registration + cached rows), THEN open Sign In
+                    SessionUser.signOut(getApplicationContext(), SessionUser.uid(this),
+                            this::goToSignIn);
                 })
                 .show();
     }
@@ -495,6 +571,7 @@ public class HomeActivity extends AppCompatActivity {
                 return;
             }
             unsentHostelBooking = null;
+            offlineLatestBooking = list.isEmpty() ? null : list.get(0);   // NEW
             for (HostelBookingRepository.Booking b : list) {   // newest first, unsent on top
                 if (SyncState.PENDING_SYNC.equals(b.syncState)) {
                     unsentHostelBooking = b;
@@ -784,6 +861,23 @@ public class HomeActivity extends AppCompatActivity {
             txtViewHostelDetails.setText(hostelDetails("pending", unsentHostelBooking.hostelName,
                     "", "", "")
                     + "\nSaved on this phone: it is sent when you are online.");
+            return;
+        }
+
+        // NEW (offline sign-in): the server cannot be asked, so show the copy saved on this phone.
+        // That copy has no room number or check-in date, so we say so instead of guessing.
+        if (offlineMode) {
+            if (offlineLatestBooking == null) {
+                txtViewBookedStatus.setText("No saved booking");
+                txtViewHostelDetails.setText("Nothing about a hostel booking is saved on this phone.\n"
+                        + "Connect to the internet to check your booking.");
+            } else {
+                txtViewBookedStatus.setText(hostelHeadline(offlineLatestBooking.status));
+                txtViewHostelDetails.setText("Hostel: "
+                        + (isBlank(offlineLatestBooking.hostelName) ? "-" : offlineLatestBooking.hostelName.trim())
+                        + "\nShowing the copy saved on this phone.\n"
+                        + "Room, check-in and warden are shown when you are online.");
+            }
             return;
         }
 

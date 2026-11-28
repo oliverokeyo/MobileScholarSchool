@@ -410,6 +410,15 @@ public class SyncWorker extends Worker {
                 return Step.OK;   // nothing to do
             }
 
+            // NEW (account isolation): only act on a registration the APP still considers waiting.
+            // Without this check, ANY leftover registration signed its account in whenever nobody
+            // was signed in, which is how a signed-out account kept coming back at every launch.
+            if (!SessionUser.isRegistrationStillWanted(ctx, p.optString("localUid", ""))) {
+                PendingRegistrationStore.clear(ctx);
+                SyncLog.w(ctx, TAG, "Discarded a leftover registration nobody is waiting for");
+                return Step.OK;
+            }
+
             FirebaseAuth auth = FirebaseAuth.getInstance();
             String email = p.getString("email");
             String password = p.getString("password");
@@ -432,6 +441,15 @@ public class SyncWorker extends Worker {
                 } else {
                     throw e;
                 }
+            }
+
+            // NEW: the student may have signed out or cancelled while the account was being made.
+            // Check again, and if so do NOT leave that account signed in.
+            if (!SessionUser.isRegistrationStillWanted(ctx, p.optString("localUid", ""))) {
+                auth.signOut();
+                PendingRegistrationStore.clear(ctx);
+                SyncLog.w(ctx, TAG, "Registration cancelled while it was being delivered: signed out again");
+                return Step.OK;
             }
 
             Map<String, Object> profile = new HashMap<>();

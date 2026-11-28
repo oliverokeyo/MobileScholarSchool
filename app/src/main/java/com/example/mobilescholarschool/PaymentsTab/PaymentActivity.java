@@ -24,12 +24,13 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
 import com.example.mobilescholarschool.Components.BottomNavHelper;
-import com.example.mobilescholarschool.Components.ConnectivityHelper;
+import com.example.mobilescholarschool.Components.OfflineBanner;           // offline sign-in
 import com.example.mobilescholarschool.Components.SessionUser;
 import com.example.mobilescholarschool.Components.SwipeNavigator;
 import com.example.mobilescholarschool.Data.DbExecutor;
 import com.example.mobilescholarschool.Data.ProfileRepository;
 import com.example.mobilescholarschool.R;
+import com.example.mobilescholarschool.Security.OnlineOnlyGuard;           // offline sign-in
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -58,8 +59,8 @@ public class PaymentActivity extends AppCompatActivity {
     // Firestore location of payment attempts: payments/{paymentId}
     private static final String COLLECTION_PAYMENTS = "payments";
 
-    // CHANGED: the status words now live in PaymentRecord (PaymentRecord.STATUS_PENDING and so on),
-    // so the rules, this screen and the dialogs all share ONE definition of them.
+    // The status words live in PaymentRecord (PaymentRecord.STATUS_PENDING and so on), so the
+    // rules, this screen and the dialogs all share ONE definition of them.
     private static final String MODE_SANDBOX = "sandbox";
 
     // Placeholder stored until Daraja tells us the real CheckoutRequestID.
@@ -81,7 +82,7 @@ public class PaymentActivity extends AppCompatActivity {
     // Button text while waiting. Move into strings.xml when you next tidy up.
     private static final String LABEL_WAITING = "Waiting for M-PESA...";
 
-    // NEW: the three looks of the registration chip (background, text).
+    // The three looks of the registration chip (background, text).
     private static final int CHIP_NEUTRAL_BG = 0xFFECEFF1;        // checking: calm grey
     private static final int CHIP_NEUTRAL_TEXT = 0xFF455A64;
     private static final int CHIP_UNREGISTERED_BG = 0xFFFFF3E0;   // unregistered: warm, attention-getting
@@ -97,21 +98,24 @@ public class PaymentActivity extends AppCompatActivity {
     private Button btnPayment;
     private EditText editStudentNo, editAmount, editPhone;
 
-    // NEW: the grey/orange/green "Registration status" pill at the top.
+    // The "Offline mode" strip above the tab bar (offline sign-in).
+    private OfflineBanner offlineBanner;
+
+    // The grey/orange/green "Registration status" pill at the top.
     private TextView txtStatus;
 
-    // NEW: the shared payment data (also used by the three dialogs).
+    // The shared payment data (also used by the three dialogs, Home and Profile).
     private PaymentsViewModel paymentsViewModel;
 
-    // NEW: told whenever the payments change, so the chip updates itself the moment a payment
+    // Told whenever the payments change, so the chip updates itself the moment a payment
     // succeeds. (A field, not a lambda in onStart, so onStop can remove the SAME object.)
     private final PaymentsViewModel.Listener paymentsListener = this::refreshRegistrationStatus;
 
     // The button's normal text, remembered so we can restore it after a payment.
     private CharSequence payButtonLabel;
 
-    // True from the tap until the payment reaches a final status. Stops double taps from
-    // sending the student two prompts for one payment.
+    // True from the moment the payment starts until it reaches a final status. Stops double taps
+    // from sending the student two prompts for one payment.
     private boolean paymentInFlight = false;
 
     // Our live "subscription" to one payment document. Must be removed when we are done,
@@ -153,19 +157,24 @@ public class PaymentActivity extends AppCompatActivity {
         BottomNavHelper.setup(this, R.id.nav_payments);
         // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
         swipeNavigator = new SwipeNavigator(this, R.id.nav_payments);
+        offlineBanner = OfflineBanner.standard(this);   // "Offline mode" strip above the tab bar
 
         bindViews();
-        setupRegistrationStatus();   // NEW
-        setupDialogTriggers();       // NEW
+        setupRegistrationStatus();
+        setupDialogTriggers();
         prefillStudentNumber();
 
         btnPayment.setOnClickListener(v -> onPayClicked());
     }
 
-    // NEW: only listen while the screen is visible. Nothing to update when nobody can see it.
     @Override
     protected void onStart() {
         super.onStart();
+        if (offlineBanner != null) {
+            offlineBanner.start();
+        }
+        // Only listen while the screen is visible. paymentsViewModel is null when onCreate
+        // returned early (signed out), hence the check.
         if (paymentsViewModel != null) {
             paymentsViewModel.addListener(paymentsListener);
             refreshRegistrationStatus();   // catch anything that changed while we were away
@@ -174,6 +183,9 @@ public class PaymentActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        if (offlineBanner != null) {
+            offlineBanner.stop();
+        }
         if (paymentsViewModel != null) {
             paymentsViewModel.removeListener(paymentsListener);
         }
@@ -213,7 +225,7 @@ public class PaymentActivity extends AppCompatActivity {
     }
 
     // ------------------------------------------------------------------
-    // NEW: registration status chip
+    // Registration status chip
     // ------------------------------------------------------------------
 
     /** Gets (or re-uses, after a rotation) the shared data and starts it loading. */
@@ -223,6 +235,10 @@ public class PaymentActivity extends AppCompatActivity {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             paymentsViewModel.start(user.getUid());
+        } else if (SessionUser.isOfflineSession()) {
+            // Signed in offline with the saved password: payments live on the server and there is
+            // no Firebase user to ask. Leave the data un-started so the chip keeps saying
+            // "Checking..." instead of a false "Unregistered" (ProfileActivity does the same).
         } else {
             paymentsViewModel.startWithoutAccount();   // a waiting sign-up has nothing on the server
         }
@@ -271,7 +287,7 @@ public class PaymentActivity extends AppCompatActivity {
     }
 
     // ------------------------------------------------------------------
-    // NEW: the cards and the bell open the dialogs
+    // The cards and the bell open the dialogs
     // ------------------------------------------------------------------
 
     private void setupDialogTriggers() {
@@ -309,8 +325,8 @@ public class PaymentActivity extends AppCompatActivity {
      * Asks the LOCAL database first (instant, works offline), and only falls back to
      * Firestore when this phone has no saved copy yet.
      *
-     * NOTE: paying itself stays ONLINE-ONLY. An M-PESA prompt is a live conversation with the
-     * phone network, so queuing it for later would charge the student at a surprise moment.
+     * An offline session or a waiting sign-up has no Firebase user, so there is no server
+     * read to fall back on: the student can simply type the number.
      */
     private void prefillStudentNumber() {
         String uid = SessionUser.uid(getApplicationContext());   // real uid OR provisional id
@@ -323,11 +339,11 @@ public class PaymentActivity extends AppCompatActivity {
                 return;
             }
             if (local != null && local.registrationNo != null && !local.registrationNo.trim().isEmpty()) {
-                fillStudentNumber(local.registrationNo);
+                fillStudentNumber(local.registrationNo.trim());
             } else {
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
                 if (user != null) {
-                    prefillFromServer(user);   // a waiting sign-up has no server profile to ask
+                    prefillFromServer(user);
                 }
             }
         });
@@ -367,17 +383,6 @@ public class PaymentActivity extends AppCompatActivity {
         if (paymentInFlight) {
             return;
         }
-        // Paying is a live conversation with M-PESA, so unlike everything else it is NOT saved for
-        // later. Say why, instead of failing in a confusing way.
-        if (!SessionUser.isSignedIn()) {
-            Toast.makeText(this, "Payments need your account. Please wait until it has been created.",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (!ConnectivityHelper.isOnline(this)) {
-            Toast.makeText(this, "Payments need an internet connection.", Toast.LENGTH_LONG).show();
-            return;
-        }
         if (!MpesaConfig.isConfigured()) {
             Toast.makeText(this, "Add your Daraja sandbox keys to MpesaConfig.java first.",
                     Toast.LENGTH_LONG).show();
@@ -386,7 +391,10 @@ public class PaymentActivity extends AppCompatActivity {
         if (!inputsAreComplete()) {
             return;
         }
-        startStkPush();
+        // A payment is a SENSITIVE operation. It only goes ahead after the server has just
+        // confirmed this student (see OnlineOnlyGuard): an offline sign-in, a waiting sign-up, a
+        // disabled account or no connection all stop here with a clear message instead.
+        OnlineOnlyGuard.requireServerAuth(this, this::startStkPush);
     }
 
     // ------------------------------------------------------------------
@@ -400,10 +408,19 @@ public class PaymentActivity extends AppCompatActivity {
     //
     // Production differs in ONE way: a server owns steps 2-5 and Safaricom's callback replaces
     // step 4. The document and the listener stay exactly the same.
+    //
+    // LESSON: OnlineOnlyGuard is a courtesy, not the lock. A modified app can skip any check made
+    // on the phone. For real money, the backend must verify the caller's Firebase ID token, take
+    // the student's uid from that token (never from this screen), and enforce the amount and phone
+    // rules itself.
     // ------------------------------------------------------------------
 
-    /** Step 1: record the intent, then start the call to Daraja. */
+    /** Step 1: record the intent, then start the call to Daraja. Runs only AFTER the guard approved. */
     private void startStkPush() {
+        // The guard can call back after a delay, so a double tap may have started one already.
+        if (paymentInFlight) {
+            return;
+        }
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
             Toast.makeText(this, "Please sign in again.", Toast.LENGTH_LONG).show();
@@ -462,7 +479,7 @@ public class PaymentActivity extends AppCompatActivity {
                         return;
                     }
                     attachDarajaIds(paymentRef, push);
-                    // CHANGED: the same words the bell shows (R.string.toast_check_phone).
+                    // The same words the bell shows (R.string.toast_check_phone).
                     Toast.makeText(this, R.string.toast_check_phone, Toast.LENGTH_LONG).show();
                 });
             } catch (Exception e) {
@@ -590,8 +607,8 @@ public class PaymentActivity extends AppCompatActivity {
     }
 
     /**
-     * Tells the student how it went. CHANGED: the words now come from strings.xml, the same
-     * strings the bell uses, so a result and its notification can never disagree.
+     * Tells the student how it went. The words come from strings.xml, the same strings the bell
+     * uses, so a result and its notification can never disagree.
      */
     private void showResult(DocumentSnapshot payment) {
         String status = payment.getString("status");

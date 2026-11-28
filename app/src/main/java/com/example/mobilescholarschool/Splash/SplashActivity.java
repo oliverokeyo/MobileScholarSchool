@@ -11,10 +11,10 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.mobilescholarschool.Components.SessionUser;
 import com.example.mobilescholarschool.HomeTab.HomeActivity;
 import com.example.mobilescholarschool.Onboarding.OnboardingActivity;
 import com.example.mobilescholarschool.R;
-import com.google.firebase.auth.FirebaseAuth;
 
 public class SplashActivity extends AppCompatActivity {
 
@@ -25,18 +25,27 @@ public class SplashActivity extends AppCompatActivity {
 
     // The job to run after the delay. Kept in a field so onDestroy can cancel it.
     private final Runnable openNextScreen = () -> {
-        // Firebase remembers the session on the device: null means nobody is signed in.
-        boolean isLoggedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
-
-        // Logged out -> onboarding every launch. Logged in -> straight to Home.
-        Class<?> destination = isLoggedIn
-                ? HomeActivity.class
-                : OnboardingActivity.class;
-
-        Intent intent = new Intent(SplashActivity.this, destination);
+        Intent intent = new Intent(SplashActivity.this, chooseDestination());
         startActivity(intent);
         finish();   // remove the splash from the back stack so Back can't return to it
     };
+
+    /**
+     * CHANGED: the ONE place that decides where a launch goes. Only one question matters now:
+     *
+     *   Is somebody signed in?  SessionUser.hasSession() asks Firebase (a real account), or an
+     *   offline sign-up that is still waiting for internet. Nothing else counts.
+     *
+     *      signed in    -> Home         (returning student)
+     *      signed out   -> Onboarding   (EVERY launch, whether first time or not)
+     *
+     * We no longer remember "the intro was seen": that memory is what used to skip onboarding.
+     */
+    private Class<?> chooseDestination() {
+        return SessionUser.hasSession(this)
+                ? HomeActivity.class
+                : OnboardingActivity.class;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

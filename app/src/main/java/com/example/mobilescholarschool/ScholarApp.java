@@ -7,6 +7,8 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.util.Log;
 
+import com.example.mobilescholarschool.Components.OfflineBanner;
+import com.example.mobilescholarschool.Data.DataChangeNotifier;
 import com.example.mobilescholarschool.Sync.SyncScheduler;
 
 /**
@@ -21,6 +23,12 @@ import com.example.mobilescholarschool.Sync.SyncScheduler;
  * Because it is registered here and never removed, it works on every screen, and it is also the
  * reason a sync happens at every app launch while online (Android reports the existing network
  * as "available" as soon as we start listening).
+ *
+ * CHANGED (offline sign-in): the listener ALSO announces every connectivity change on the
+ * DataChangeNotifier board, so any open screen's OfflineBanner can switch between
+ * "Offline mode" and "Back online, tap to sign in and sync" without polling.
+ * Note what it does NOT do: it never signs the student in by itself. Going from the local
+ * offline session to a real Firebase session needs the password (see OnlineReauthDialog).
  */
 public class ScholarApp extends Application {
 
@@ -42,6 +50,20 @@ public class ScholarApp extends Application {
                 @Override
                 public void onAvailable(Network network) {
                     SyncScheduler.kick(ScholarApp.this);
+                    DataChangeNotifier.notifyChanged(OfflineBanner.EVENT_CONNECTIVITY);
+                }
+
+                // NEW: a network can appear before Android has VALIDATED that it reaches the
+                // internet; this fires when that check finishes, so the banner text is right.
+                @Override
+                public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
+                    DataChangeNotifier.notifyChanged(OfflineBanner.EVENT_CONNECTIVITY);
+                }
+
+                // NEW: connection lost, so the banner can switch back to "Offline mode".
+                @Override
+                public void onLost(Network network) {
+                    DataChangeNotifier.notifyChanged(OfflineBanner.EVENT_CONNECTIVITY);
                 }
             });
         } catch (RuntimeException e) {

@@ -40,6 +40,8 @@ public class PaymentsViewModel extends ViewModel {
 
     private ListenerRegistration paymentsRegistration;
     private boolean started = false;
+    // NEW (account isolation): WHICH student this data belongs to (null = a waiting sign-up).
+    private String activeUid;
     private boolean paymentsLoaded = false;
 
     // From users/{uid}
@@ -51,12 +53,23 @@ public class PaymentsViewModel extends ViewModel {
     // Starting
     // ------------------------------------------------------------------
 
-    /** Safe to call more than once (a rotation calls it again): only the first call does work. */
+    /**
+     * Safe to call more than once (a rotation calls it again) for the SAME student: only the first
+     * call does work.
+     *
+     * CHANGED (account isolation): it used to ignore every later call, whoever was asking. If this
+     * object were ever reused after another student signed in, it would have kept showing the
+     * FIRST student's payments. Now a different uid throws the old data away and starts fresh.
+     */
     public void start(@NonNull String uid) {
-        if (started) {
+        if (started && uid.equals(activeUid)) {
             return;
         }
+        if (started) {
+            reset();   // a different account: forget everything about the previous one
+        }
         started = true;
+        activeUid = uid;
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
@@ -67,6 +80,9 @@ public class PaymentsViewModel extends ViewModel {
         paymentsRegistration = db.collection("payments")
                 .whereEqualTo("studentUid", uid)
                 .addSnapshotListener((snapshot, error) -> {
+                    if (!uid.equals(activeUid)) {
+                        return;   // NEW: a late answer for a student who is no longer active
+                    }
                     if (error != null) {
                         Log.e(TAG, "Payments listener failed", error);
                         return;
@@ -93,6 +109,9 @@ public class PaymentsViewModel extends ViewModel {
         // One read: name, registration number, and the profile's own registration flag.
         db.collection("users").document(uid).get()
                 .addOnSuccessListener(doc -> {
+                    if (!uid.equals(activeUid)) {
+                        return;   // NEW: same protection for the one-off profile read
+                    }
                     fullName = doc.getString("fullName");
                     registrationNo = doc.getString("registrationNo");
                     profileSaysRegistered = "registered".equalsIgnoreCase(doc.getString("registrationStatus"));
@@ -103,11 +122,31 @@ public class PaymentsViewModel extends ViewModel {
 
     /** For a provisional (not yet created) account: there is no server data, so nothing to wait for. */
     public void startWithoutAccount() {
-        if (!started) {
-            started = true;
-            paymentsLoaded = true;
-            notifyChanged();
+        if (started && activeUid == null) {
+            return;
         }
+        if (started) {
+            reset();   // NEW: this used to belong to a real account: do not keep its data
+        }
+        started = true;
+        activeUid = null;
+        paymentsLoaded = true;
+        notifyChanged();
+    }
+
+    /** NEW: forgets one student completely (listener, payments, name, flags). */
+    private void reset() {
+        if (paymentsRegistration != null) {
+            paymentsRegistration.remove();
+            paymentsRegistration = null;
+        }
+        payments.clear();
+        paymentsLoaded = false;
+        profileSaysRegistered = false;
+        fullName = null;
+        registrationNo = null;
+        started = false;
+        activeUid = null;
     }
 
     @Override
