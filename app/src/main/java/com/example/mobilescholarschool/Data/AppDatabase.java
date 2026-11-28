@@ -13,12 +13,14 @@ import android.database.sqlite.SQLiteOpenHelper;
  *   (b) upgrades it when you ship a new version of the app (onUpgrade).
  * You never open the file yourself; you ask the helper for getWritableDatabase().
  *
- * LESSON 2: The five tables and what each is for
+ * LESSON 2: The six tables and what each is for
  *   profile          a copy of users/{uid}                  (so the app works offline)
  *   book_requests    book requests the student made         (saved here FIRST, sent later)
  *   hostel_bookings  hostel bookings                        (saved here FIRST, sent later)
  *   outbox           "things still to send to Firestore"    (the to-do list for the sync worker)
  *   sync_log         a diary of what the sync did           (this is the "logging")
+ *   offline_auth     NEW: a salted password VERIFIER (never the password) so a student who
+ *                    already signed in online once can sign in again with no internet
  *
  * LESSON 3: sync_state, the column that makes offline work
  *   Every row that can be sent to Firestore has a sync_state:
@@ -34,13 +36,15 @@ public final class AppDatabase extends SQLiteOpenHelper {
     private static final String DB_NAME = "scholar_school.db";
 
     // Raise this by 1 every time the table layout changes, and add a step in onUpgrade.
-    private static final int DB_VERSION = 1;
+    // Version 2 added the offline_auth table (offline sign-in).
+    private static final int DB_VERSION = 2;
 
     public static final String T_PROFILE = "profile";
     public static final String T_BOOK_REQUESTS = "book_requests";
     public static final String T_HOSTEL_BOOKINGS = "hostel_bookings";
     public static final String T_OUTBOX = "outbox";
     public static final String T_SYNC_LOG = "sync_log";
+    public static final String T_OFFLINE_AUTH = "offline_auth";
 
     private static final String CREATE_PROFILE =
             "CREATE TABLE profile ("
@@ -114,6 +118,31 @@ public final class AppDatabase extends SQLiteOpenHelper {
                     + "tag TEXT NOT NULL, "
                     + "message TEXT NOT NULL)";
 
+    // NEW: one row per student who has signed in ONLINE on this phone.
+    //
+    // LESSON: what is a "verifier"? We never keep the password. We keep the RESULT of running it
+    // through a deliberately slow one-way function (PBKDF2) mixed with a random per-student
+    // "salt" and a secret key locked inside the phone's hardware-backed Keystore. At offline
+    // sign-in we run the typed password through the same recipe and compare the results.
+    // algorithm + iterations are stored per row so we can strengthen the recipe later without
+    // locking existing students out.
+    private static final String CREATE_OFFLINE_AUTH =
+            "CREATE TABLE offline_auth ("
+                    + "uid TEXT PRIMARY KEY NOT NULL, "
+                    + "email TEXT NOT NULL UNIQUE, "          // always stored trimmed + lower-case
+                    + "algorithm TEXT NOT NULL, "
+                    + "iterations INTEGER NOT NULL, "
+                    + "salt BLOB NOT NULL, "
+                    + "verifier BLOB NOT NULL, "
+                    // When Firebase last confirmed this password ONLINE. Offline sign-in expires
+                    // if this gets too old, so a disabled account cannot be used forever.
+                    + "last_online_millis INTEGER NOT NULL, "
+                    // Rate limiting lives here (not in memory) so killing the app does not reset it
+                    + "failed_attempts INTEGER NOT NULL DEFAULT 0, "
+                    + "locked_until_millis INTEGER NOT NULL DEFAULT 0, "
+                    // The latest clock reading we saw: lets us notice the clock being wound back
+                    + "last_seen_millis INTEGER NOT NULL DEFAULT 0)";
+
     private static final String CREATE_INDEX_REQUESTS =
             "CREATE INDEX idx_book_requests_uid_state ON book_requests (uid, sync_state)";
 
@@ -148,6 +177,7 @@ public final class AppDatabase extends SQLiteOpenHelper {
         db.execSQL(CREATE_HOSTEL_BOOKINGS);
         db.execSQL(CREATE_OUTBOX);
         db.execSQL(CREATE_SYNC_LOG);
+        db.execSQL(CREATE_OFFLINE_AUTH);
         db.execSQL(CREATE_INDEX_REQUESTS);
         db.execSQL(CREATE_INDEX_BOOKINGS);
     }
@@ -157,12 +187,15 @@ public final class AppDatabase extends SQLiteOpenHelper {
      * requests the student made offline that have not been sent yet, and dropping them would
      * destroy that work. Add one step per version instead, for example:
      *
-     *     if (oldVersion < 2) { db.execSQL("ALTER TABLE book_requests ADD COLUMN note TEXT"); }
-     *     if (oldVersion < 3) { ... }
+     *     if (oldVersion < 3) { db.execSQL("ALTER TABLE book_requests ADD COLUMN note TEXT"); }
+     *     if (oldVersion < 4) { ... }
      */
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // Version 1 is the first version: nothing to upgrade yet.
+        // Version 1 -> 2: offline sign-in. Only ADDS a table, so no saved work is touched.
+        if (oldVersion < 2) {
+            db.execSQL(CREATE_OFFLINE_AUTH);
+        }
     }
 
     /**
@@ -223,6 +256,28 @@ public final class AppDatabase extends SQLiteOpenHelper {
             db.delete(T_PROFILE, "uid = ? AND sync_state = ?", args);
             db.delete(T_BOOK_REQUESTS, "uid = ? AND sync_state = ?", args);
             db.delete(T_HOSTEL_BOOKINGS, "uid = ? AND sync_state = ?", args);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    /**
+     * NEW (account isolation): when a student signs in, remove every cached row that belongs to
+     * SOMEBODY ELSE and that the server already has. It is a safety net behind sign-out's own
+     * clean-up (which could be skipped if the phone died mid-way), so student B can never find
+     * student A's cached data on the phone. Rows still waiting to be sent (pending_sync / failed)
+     * and the provisional "local-..." rows are KEPT: that is unsent work, and every query filters
+     * by uid, so only the owner can ever see it.
+     */
+    public void clearSyncedExcept(String keepUid) {
+        SQLiteDatabase db = getWritableDatabase();
+        String[] args = {keepUid, SyncState.SYNCED};
+        db.beginTransaction();
+        try {
+            db.delete(T_PROFILE, "uid <> ? AND sync_state = ?", args);
+            db.delete(T_BOOK_REQUESTS, "uid <> ? AND sync_state = ?", args);
+            db.delete(T_HOSTEL_BOOKINGS, "uid <> ? AND sync_state = ?", args);
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();

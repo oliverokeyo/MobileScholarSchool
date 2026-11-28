@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
+import com.example.mobilescholarschool.Components.OfflineBanner;           // NEW (offline sign-in)
 import com.example.mobilescholarschool.Components.BottomNavHelper;
 import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
@@ -69,6 +70,7 @@ public class LibraryTabActivity extends AppCompatActivity {
     // Live connections that keep those numbers fresh (started in onStart, stopped in onStop)
     private ListenerRegistration requestsListener;
     private ListenerRegistration loansListener;
+    private OfflineBanner offlineBanner;   // NEW (offline sign-in)
 
     // ---- NEW: offline support ----
     // The "Pending" number on screen = requests the server already knows are pending
@@ -120,6 +122,7 @@ public class LibraryTabActivity extends AppCompatActivity {
         BottomNavHelper.setup(this, R.id.nav_library);
         // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
         swipeNavigator = new SwipeNavigator(this, R.id.nav_library);
+        offlineBanner = OfflineBanner.standard(this);   // NEW: "Offline mode" strip above the tab bar
 
         // The container that holds the full-screen Fragments. It is hidden until one is open.
         fragmentContainer = findViewById(R.id.fragmentContainer);
@@ -231,6 +234,9 @@ public class LibraryTabActivity extends AppCompatActivity {
         if (txtBorrowed != null) {   // null only if AuthGuard sent a signed-out user away
             listenForCounts();
             DataChangeNotifier.register(dataListener);   // NEW
+            if (offlineBanner != null) {
+                offlineBanner.start();                   // NEW (offline sign-in)
+            }
             refreshLocalPending();                       // NEW
             showFailedRequests();                        // NEW
         }
@@ -244,6 +250,9 @@ public class LibraryTabActivity extends AppCompatActivity {
         openingRequestForm = false;
         stopListeningForCounts();
         DataChangeNotifier.unregister(dataListener);     // NEW
+        if (offlineBanner != null) {
+            offlineBanner.stop();                        // NEW (offline sign-in)
+        }
         if (failedDialog != null) {                      // NEW
             failedDialog.dismiss();
             failedDialog = null;

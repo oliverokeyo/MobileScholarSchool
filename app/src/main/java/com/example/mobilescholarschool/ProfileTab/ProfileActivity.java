@@ -29,6 +29,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.mobilescholarschool.Components.BottomNavHelper;
+import com.example.mobilescholarschool.Components.OfflineBanner;                 // NEW (offline sign-in)
+import com.example.mobilescholarschool.Components.OnlineReauthDialog;            // NEW (offline sign-in)
 import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
 import com.example.mobilescholarschool.Data.AppDatabase;                 // NEW
@@ -51,6 +53,10 @@ public class ProfileActivity extends AppCompatActivity {
 
     // Drag-to-switch-tab with spring animation. Null until the screen is set up.
     private SwipeNavigator swipeNavigator;
+
+    // NEW (offline sign-in): true when signed in with the saved password and NO Firebase user
+    private boolean offlineSession;
+    private OfflineBanner offlineBanner;
 
     FirebaseAuth auth;
     FirebaseUser user;          // CHANGED: null for a student whose offline sign-up is still waiting
@@ -133,7 +139,10 @@ public class ProfileActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
         user = auth.getCurrentUser();
         uid = SessionUser.uid(this);
-        provisional = user == null;
+        // CHANGED: "no Firebase user" no longer means "waiting sign-up": it can also be an offline
+        // sign-in. Ask SessionUser, the one place that knows which of the two it is.
+        offlineSession = SessionUser.isOfflineSession();
+        provisional = SessionUser.isProvisional(this);
 
         // Nobody signed in AND no waiting sign-up -> go to Sign In and STOP
         if (uid == null) {
@@ -146,6 +155,19 @@ public class ProfileActivity extends AppCompatActivity {
         BottomNavHelper.setup(this, R.id.nav_profile);
         // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
         swipeNavigator = new SwipeNavigator(this, R.id.nav_profile);
+
+        // NEW: the "Offline mode" strip above the tab bar
+        offlineBanner = new OfflineBanner(this, new OnlineReauthDialog.Callback() {
+            @Override
+            public void onSignedIn() {
+                recreate();   // a real Firebase user exists now: reload as the real thing
+            }
+
+            @Override
+            public void onAccessRevoked() {
+                goToSignIn();
+            }
+        });
 
         db = FirebaseFirestore.getInstance();
 
@@ -175,7 +197,9 @@ public class ProfileActivity extends AppCompatActivity {
         setupRegistrationStatus();   // NEW: the pill follows the student's payments
 
         loadLocalProfile();   // NEW: show the saved copy instantly, even with no internet
-        if (!provisional) {
+        // CHANGED: also not in an offline session. With no Firebase user the server would refuse
+        // the read, and we must not rely on Firestore's cache to get around that.
+        if (!provisional && !offlineSession) {
             listenToProfile();    // keeps that copy in step with the server (needs a real account)
         }
 
@@ -191,6 +215,9 @@ public class ProfileActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         DataChangeNotifier.register(dataListener);   // NEW
+        if (offlineBanner != null) {
+            offlineBanner.start();   // NEW (offline sign-in)
+        }
         // NEW: only listen to payment changes while the screen is visible. paymentsViewModel is
         // null when onCreate returned early (signed out), hence the check.
         if (paymentsViewModel != null) {
@@ -203,6 +230,9 @@ public class ProfileActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         DataChangeNotifier.unregister(dataListener); // NEW
+        if (offlineBanner != null) {
+            offlineBanner.stop();    // NEW (offline sign-in)
+        }
         if (paymentsViewModel != null) {
             paymentsViewModel.removeListener(paymentsListener);
         }
@@ -217,6 +247,9 @@ public class ProfileActivity extends AppCompatActivity {
         paymentsViewModel = new ViewModelProvider(this).get(PaymentsViewModel.class);
         if (user != null) {
             paymentsViewModel.start(user.getUid());   // safe to call again: only the first call works
+        } else if (offlineSession) {
+            // NEW: payments live on the server and there is no Firebase user. Leave the data
+            // un-started so the pill keeps saying "Checking..." instead of a false "Unregistered".
         } else {
             paymentsViewModel.startWithoutAccount();  // a waiting sign-up has no payments on the server
         }
@@ -286,7 +319,9 @@ public class ProfileActivity extends AppCompatActivity {
             }
 
             displayProfile();
-            btnChange.setEnabled(true);         // safe to edit now
+            // CHANGED: changing account details is an ACCOUNT MODIFICATION, so it needs a real
+            // server sign-in. An offline session can read and print, not edit.
+            btnChange.setEnabled(!offlineSession);
             btnPrintSummary.setEnabled(true);   // and safe to print
         });
     }
@@ -427,6 +462,10 @@ public class ProfileActivity extends AppCompatActivity {
     // =====================================================================
 
     private void showEditDialog() {
+        if (offlineSession) {   // NEW: defence in depth, the button is already disabled
+            Toast.makeText(this, "Sign in online to change your details.", Toast.LENGTH_LONG).show();
+            return;
+        }
         // Inflate = turn dialog_edit_details.xml into real View objects
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_details, null);
 
@@ -620,13 +659,14 @@ public class ProfileActivity extends AppCompatActivity {
         // Stop listening FIRST: once signed out, the rules would reject this read
         if (profileListener != null) {
             profileListener.remove();
+            profileListener = null;
         }
-        // Privacy mop-up: forget this student's data that the server already has.
-        // (Unsent rows stay, so no work is lost.)
-        DbExecutor.run(() -> AppDatabase.get(getApplicationContext()).clearSyncedFor(uid));
-        SessionUser.clearProvisional(this);   // a leftover marker would bounce Sign In straight back in
-        auth.signOut();
-        goToSignIn();
+        // CHANGED: ONE complete sign-out instead of three loose steps. Before, the waiting
+        // registration in the encrypted store was never cleared, so SyncWorker signed that
+        // account straight back in at the next launch, and an OFFLINE session was never ended.
+        // goToSignIn runs only AFTER everything is finished, so Sign In never bounces back.
+        btnSignOut.setEnabled(false);
+        SessionUser.signOut(getApplicationContext(), uid, this::goToSignIn);
     }
 
     /** Waits until the saved sign-up is really gone, THEN opens Sign In (which would otherwise bounce back). */

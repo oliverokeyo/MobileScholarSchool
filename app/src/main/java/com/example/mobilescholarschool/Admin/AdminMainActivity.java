@@ -27,6 +27,17 @@ public class AdminMainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // NEW: administration needs a REAL server session. An offline sign-in, a waiting sign-up
+        // or nobody at all has no Firebase user, so none of them may open this screen. Home is
+        // the safe place to send them: it shows the right state for each (or Sign In).
+        if (com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() == null) {
+            startActivity(new android.content.Intent(this,
+                    com.example.mobilescholarschool.HomeTab.HomeActivity.class));
+            finish();
+            return;
+        }
+
         EdgeToEdge.enable(this);
         setContentView(R.layout.admin_activity_main);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {

@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.example.mobilescholarschool.Components.AuthGuard;
+import com.example.mobilescholarschool.Components.OfflineBanner;           // NEW (offline sign-in)
 import com.example.mobilescholarschool.Components.BottomNavHelper;
 import com.example.mobilescholarschool.Components.SessionUser;                  // NEW
 import com.example.mobilescholarschool.Components.SwipeNavigator;
@@ -74,6 +75,7 @@ public class HostelActivity extends AppCompatActivity {
     private TextView txtBookingStatus;
     private String originalBookingText;
     private ListenerRegistration bookingsListener;
+    private OfflineBanner offlineBanner;   // NEW (offline sign-in)
 
     // NEW: fires when the local database changes (a booking was saved, delivered or refused,
     // or the profile copy changed), so the card and the student ID refresh by themselves
@@ -120,6 +122,7 @@ public class HostelActivity extends AppCompatActivity {
         BottomNavHelper.setup(this, R.id.nav_hostel);
         // Must come AFTER BottomNavHelper.setup (it reads what setup leaves behind).
         swipeNavigator = new SwipeNavigator(this, R.id.nav_hostel);
+        offlineBanner = OfflineBanner.standard(this);   // NEW: "Offline mode" strip above the tab bar
 
         setUpScreens();
     }
@@ -130,6 +133,9 @@ public class HostelActivity extends AppCompatActivity {
         super.onStart();
         if (txtBookingStatus != null) {   // null only if AuthGuard sent a signed-out user away
             DataChangeNotifier.register(dataListener);   // NEW
+            if (offlineBanner != null) {
+                offlineBanner.start();                   // NEW (offline sign-in)
+            }
             loadLocalProfile(false);                     // NEW: instant, works offline
             loadLocalBookings();                         // NEW: instant, works offline
             listenToStudentId();    // server -> local copy
@@ -150,6 +156,9 @@ public class HostelActivity extends AppCompatActivity {
             bookingsListener = null;
         }
         DataChangeNotifier.unregister(dataListener);   // NEW
+        if (offlineBanner != null) {
+            offlineBanner.stop();                      // NEW (offline sign-in)
+        }
     }
 
     // ================================================================ the six screens
